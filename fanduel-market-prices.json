@@ -1,0 +1,626 @@
+[
+  {
+    "marketId": "717.148805568",
+    "turnInPlayEnabled": true,
+    "inplay": false,
+    "bspMarket": false,
+    "livePriceAvailable": true,
+    "guaranteedPriceAvailable": false,
+    "runnerDetails": [
+      {
+        "selectionId": 10782388,
+        "runnerOrder": 10,
+        "winRunnerOdds": {
+          "trueOdds": {
+            "decimalOdds": {
+              "decimalOdds": 1.178571428571429
+            },
+            "fractionalOdds": {
+              "numerator": 100,
+              "denominator": 560
+            }
+          },
+          "decimalDisplayOdds": {
+            "decimalOdds": 1.18
+          },
+          "fractionalDisplayOdds": {
+            "numerator": 100,
+            "denominator": 560
+          },
+          "americanDisplayOdds": {
+            "americanOdds": -560,
+            "americanOddsInt": -560
+          }
+        },
+        "previousWinRunnerOdds": [],
+        "handicap": 0,
+        "runnerStatus": "ACTIVE"
+      },
+      {
+        "selectionId": 50188,
+        "runnerOrder": 20,
+        "winRunnerOdds": {
+          "trueOdds": {
+            "decimalOdds": {
+              "decimalOdds": 5.2
+            },
+            "fractionalOdds": {
+              "numerator": 42,
+              "denominator": 10
+            }
+          },
+          "decimalDisplayOdds": {
+            "decimalOdds": 5.2
+          },
+          "fractionalDisplayOdds": {
+            "numerator": 42,
+            "denominator": 10
+          },
+          "americanDisplayOdds": {
+            "americanOdds": 420,
+            "americanOddsInt": 420
+          }
+        },
+        "previousWinRunnerOdds": [],
+        "handicap": 0,
+        "runnerStatus": "ACTIVE"
+      }
+    ],
+    "eachwayAvailable": false,
+    "legTypes": [
+      "SIMPLE_SELECTION"
+    ],
+    "hasBPE": false,
+    "hasSGM": true,
+    "betDelay": 4,
+    "rule4Deductions": [],
+    "marketStatus": "OPEN",
+    "bettingType": "FIXED_ODDS"
+  },
+  {
+    "marketId": "717.148805572",
+    "turnInPlayEnabled": true,
+    "inplay": false,
+    "bspMarket": false,
+    "livePriceAvailable": true,
+    "guaranteedPriceAvailable": false,
+    "runnerDetails": [
+      {
+        "selectionId": 7017916,
+        "runnerOrder": 10,
+        "winRunnerOdds": {
+          "trueOdds": {
+            "decimalOdds": {
+              "decimalOdds": 1.869565217391304
+            },
+            "fractionalOdds": {
+              "numerator": 100,
+              "denominator": 115
+            }
+          },
+          "decimalDisplayOdds": {
+            "decimalOdds": 1.87
+          },
+          "fractionalDisplayOdds": {
+            "numerator": 100,
+            "denominator": 115
+          },
+          "americanDisplayOdds": {
+            "americanOdds": -115,
+            "americanOddsInt": -115
+          }
+        },
+        "previousWinRunnerOdds": [],
+        "handicap": 47.5,
+        "runnerStatus": "ACTIVE"
+      },
+      {
+        "selectionId": 7017917,
+        "runnerOrder": 20,
+        "winRunnerOdds": {
+          "trueOdds": {
+            "decimalOdds": {
+              "decimalOdds": 1.952380952380952
+            },
+            "fractionalOdds": {
+              "numerator": 100,
+              "denominator": 105
+            }
+          },
+          "decimalDisplayOdds": {
+            "decimalOdds": 1.95
+          },
+          "fractionalDisplayOdds": {
+            "numerator": 100,
+            "denominator": 105
+          },
+          "americanDisplayOdds": {
+            "americanOdds": -105,
+            "americanOddsInt": -105
+          }
+        },
+        "previousWinRunnerOdds": [],
+        "handicap": 47.5,
+        "runnerStatus": "ACTIVE"
+      }
+    ],
+    "eachwayAvailable": false,
+    "legTypes": [
+      "SIMPLE_SELECTION"
+    ],
+    "hasBPE": false,
+    "hasSGM": true,
+    "betDelay": 4,
+    "rule4Deductions": [],
+    "marketStatus": "OPEN",
+    "bettingType": "MOVING_HANDICAP"
+  },
+  {
+    "marketId": "717.148805648",
+    "turnInPlayEnabled": true,
+    "inplay": false,
+    "bspMarket": false,
+    "livePriceAvailable": true,
+    "guaranteedPriceAvailable": false,
+    "runnerDetails": [
+      {
+        "selectionId": 179823,
+        "runnerOrder": 10,
+        "winRunnerOdds": {
+          "trueOdds": {
+            "decimalOdds": {
+              "decimalOdds": 1.952380952380952
+            },
+            "fractionalOdds": {
+              "numerator": 100,
+              "denominator": 105
+            }
+          },
+          "decimalDisplayOdds": {
+            "decimalOdds": 1.95
+          },
+          "fractionalDisplayOdds": {
+            "numerator": 100,
+            "denominator": 105
+          },
+          "americanDisplayOdds": {
+            "americanOdds": -105,
+            "americanOddsInt": -105
+          }
+        },
+        "previousWinRunnerOdds": [],
+        "handicap": 4.5,
+        "runnerStatus": "ACTIVE"
+      },
+      {
+        "selectionId": 50214,
+        "runnerOrder": 20,
+        "winRunnerOdds": {
+          "trueOdds": {
+            "decimalOdds": {
+              "decimalOdds": 1.869565217391304
+            },
+            "fractionalOdds": {
+              "numerator": 100,
+              "denominator": 115
+            }
+          },
+          "decimalDisplayOdds": {
+            "decimalOdds": 1.87
+          },
+          "fractionalDisplayOdds": {
+            "numerator": 100,
+            "denominator": 115
+          },
+          "americanDisplayOdds": {
+            "americanOdds": -115,
+            "americanOddsInt": -115
+          }
+        },
+        "previousWinRunnerOdds": [],
+        "handicap": -4.5,
+        "runnerStatus": "ACTIVE"
+      }
+    ],
+    "eachwayAvailable": false,
+    "legTypes": [
+      "SIMPLE_SELECTION"
+    ],
+    "hasBPE": false,
+    "hasSGM": true,
+    "betDelay": 4,
+    "rule4Deductions": [],
+    "marketStatus": "OPEN",
+    "bettingType": "MOVING_HANDICAP"
+  },
+  {
+    "marketId": "717.148805649",
+    "turnInPlayEnabled": true,
+    "inplay": false,
+    "bspMarket": false,
+    "livePriceAvailable": true,
+    "guaranteedPriceAvailable": false,
+    "runnerDetails": [
+      {
+        "selectionId": 179823,
+        "runnerOrder": 10,
+        "winRunnerOdds": {
+          "trueOdds": {
+            "decimalOdds": {
+              "decimalOdds": 2.84
+            },
+            "fractionalOdds": {
+              "numerator": 184,
+              "denominator": 100
+            }
+          },
+          "decimalDisplayOdds": {
+            "decimalOdds": 2.84
+          },
+          "fractionalDisplayOdds": {
+            "numerator": 184,
+            "denominator": 100
+          },
+          "americanDisplayOdds": {
+            "americanOdds": 184,
+            "americanOddsInt": 184
+          }
+        },
+        "previousWinRunnerOdds": [],
+        "handicap": 0,
+        "runnerStatus": "ACTIVE"
+      },
+      {
+        "selectionId": 50214,
+        "runnerOrder": 20,
+        "winRunnerOdds": {
+          "trueOdds": {
+            "decimalOdds": {
+              "decimalOdds": 1.454545454545455
+            },
+            "fractionalOdds": {
+              "numerator": 100,
+              "denominator": 220
+            }
+          },
+          "decimalDisplayOdds": {
+            "decimalOdds": 1.45
+          },
+          "fractionalDisplayOdds": {
+            "numerator": 100,
+            "denominator": 220
+          },
+          "americanDisplayOdds": {
+            "americanOdds": -220,
+            "americanOddsInt": -220
+          }
+        },
+        "previousWinRunnerOdds": [],
+        "handicap": 0,
+        "runnerStatus": "ACTIVE"
+      }
+    ],
+    "eachwayAvailable": false,
+    "legTypes": [
+      "SIMPLE_SELECTION"
+    ],
+    "hasBPE": false,
+    "hasSGM": true,
+    "betDelay": 4,
+    "rule4Deductions": [],
+    "marketStatus": "OPEN",
+    "bettingType": "FIXED_ODDS"
+  },
+  {
+    "marketId": "717.148805647",
+    "turnInPlayEnabled": true,
+    "inplay": false,
+    "bspMarket": false,
+    "livePriceAvailable": true,
+    "guaranteedPriceAvailable": false,
+    "runnerDetails": [
+      {
+        "selectionId": 7017916,
+        "runnerOrder": 10,
+        "winRunnerOdds": {
+          "trueOdds": {
+            "decimalOdds": {
+              "decimalOdds": 1.952380952380952
+            },
+            "fractionalOdds": {
+              "numerator": 100,
+              "denominator": 105
+            }
+          },
+          "decimalDisplayOdds": {
+            "decimalOdds": 1.95
+          },
+          "fractionalDisplayOdds": {
+            "numerator": 100,
+            "denominator": 105
+          },
+          "americanDisplayOdds": {
+            "americanOdds": -105,
+            "americanOddsInt": -105
+          }
+        },
+        "previousWinRunnerOdds": [],
+        "handicap": 42.5,
+        "runnerStatus": "ACTIVE"
+      },
+      {
+        "selectionId": 7017917,
+        "runnerOrder": 20,
+        "winRunnerOdds": {
+          "trueOdds": {
+            "decimalOdds": {
+              "decimalOdds": 1.869565217391304
+            },
+            "fractionalOdds": {
+              "numerator": 100,
+              "denominator": 115
+            }
+          },
+          "decimalDisplayOdds": {
+            "decimalOdds": 1.87
+          },
+          "fractionalDisplayOdds": {
+            "numerator": 100,
+            "denominator": 115
+          },
+          "americanDisplayOdds": {
+            "americanOdds": -115,
+            "americanOddsInt": -115
+          }
+        },
+        "previousWinRunnerOdds": [],
+        "handicap": 42.5,
+        "runnerStatus": "ACTIVE"
+      }
+    ],
+    "eachwayAvailable": false,
+    "legTypes": [
+      "SIMPLE_SELECTION"
+    ],
+    "hasBPE": false,
+    "hasSGM": true,
+    "betDelay": 4,
+    "rule4Deductions": [],
+    "marketStatus": "OPEN",
+    "bettingType": "MOVING_HANDICAP"
+  },
+  {
+    "marketId": "717.148805369",
+    "turnInPlayEnabled": true,
+    "inplay": false,
+    "bspMarket": false,
+    "livePriceAvailable": true,
+    "guaranteedPriceAvailable": false,
+    "runnerDetails": [
+      {
+        "selectionId": 50186,
+        "runnerOrder": 10,
+        "winRunnerOdds": {
+          "trueOdds": {
+            "decimalOdds": {
+              "decimalOdds": 1.909090909090909
+            },
+            "fractionalOdds": {
+              "numerator": 100,
+              "denominator": 110
+            }
+          },
+          "decimalDisplayOdds": {
+            "decimalOdds": 1.91
+          },
+          "fractionalDisplayOdds": {
+            "numerator": 100,
+            "denominator": 110
+          },
+          "americanDisplayOdds": {
+            "americanOdds": -110,
+            "americanOddsInt": -110
+          }
+        },
+        "previousWinRunnerOdds": [],
+        "handicap": -2.5,
+        "runnerStatus": "ACTIVE"
+      },
+      {
+        "selectionId": 12481798,
+        "runnerOrder": 20,
+        "winRunnerOdds": {
+          "trueOdds": {
+            "decimalOdds": {
+              "decimalOdds": 1.909090909090909
+            },
+            "fractionalOdds": {
+              "numerator": 100,
+              "denominator": 110
+            }
+          },
+          "decimalDisplayOdds": {
+            "decimalOdds": 1.91
+          },
+          "fractionalDisplayOdds": {
+            "numerator": 100,
+            "denominator": 110
+          },
+          "americanDisplayOdds": {
+            "americanOdds": -110,
+            "americanOddsInt": -110
+          }
+        },
+        "previousWinRunnerOdds": [],
+        "handicap": 2.5,
+        "runnerStatus": "ACTIVE"
+      }
+    ],
+    "eachwayAvailable": false,
+    "legTypes": [
+      "SIMPLE_SELECTION"
+    ],
+    "hasBPE": false,
+    "hasSGM": true,
+    "betDelay": 4,
+    "rule4Deductions": [],
+    "marketStatus": "OPEN",
+    "bettingType": "MOVING_HANDICAP"
+  },
+  {
+    "marketId": "717.148805370",
+    "turnInPlayEnabled": true,
+    "inplay": false,
+    "bspMarket": false,
+    "livePriceAvailable": true,
+    "guaranteedPriceAvailable": false,
+    "runnerDetails": [
+      {
+        "selectionId": 50186,
+        "runnerOrder": 10,
+        "winRunnerOdds": {
+          "trueOdds": {
+            "decimalOdds": {
+              "decimalOdds": 1.746268656716418
+            },
+            "fractionalOdds": {
+              "numerator": 100,
+              "denominator": 134
+            }
+          },
+          "decimalDisplayOdds": {
+            "decimalOdds": 1.75
+          },
+          "fractionalDisplayOdds": {
+            "numerator": 100,
+            "denominator": 134
+          },
+          "americanDisplayOdds": {
+            "americanOdds": -134,
+            "americanOddsInt": -134
+          }
+        },
+        "previousWinRunnerOdds": [],
+        "handicap": 0,
+        "runnerStatus": "ACTIVE"
+      },
+      {
+        "selectionId": 12481798,
+        "runnerOrder": 20,
+        "winRunnerOdds": {
+          "trueOdds": {
+            "decimalOdds": {
+              "decimalOdds": 2.14
+            },
+            "fractionalOdds": {
+              "numerator": 114,
+              "denominator": 100
+            }
+          },
+          "decimalDisplayOdds": {
+            "decimalOdds": 2.14
+          },
+          "fractionalDisplayOdds": {
+            "numerator": 114,
+            "denominator": 100
+          },
+          "americanDisplayOdds": {
+            "americanOdds": 114,
+            "americanOddsInt": 114
+          }
+        },
+        "previousWinRunnerOdds": [],
+        "handicap": 0,
+        "runnerStatus": "ACTIVE"
+      }
+    ],
+    "eachwayAvailable": false,
+    "legTypes": [
+      "SIMPLE_SELECTION"
+    ],
+    "hasBPE": false,
+    "hasSGM": true,
+    "betDelay": 4,
+    "rule4Deductions": [],
+    "marketStatus": "OPEN",
+    "bettingType": "FIXED_ODDS"
+  },
+  {
+    "marketId": "717.148805367",
+    "turnInPlayEnabled": true,
+    "inplay": false,
+    "bspMarket": false,
+    "livePriceAvailable": true,
+    "guaranteedPriceAvailable": false,
+    "runnerDetails": [
+      {
+        "selectionId": 7017916,
+        "runnerOrder": 10,
+        "winRunnerOdds": {
+          "trueOdds": {
+            "decimalOdds": {
+              "decimalOdds": 1.952380952380952
+            },
+            "fractionalOdds": {
+              "numerator": 100,
+              "denominator": 105
+            }
+          },
+          "decimalDisplayOdds": {
+            "decimalOdds": 1.95
+          },
+          "fractionalDisplayOdds": {
+            "numerator": 100,
+            "denominator": 105
+          },
+          "americanDisplayOdds": {
+            "americanOdds": -105,
+            "americanOddsInt": -105
+          }
+        },
+        "previousWinRunnerOdds": [],
+        "handicap": 43.5,
+        "runnerStatus": "ACTIVE"
+      },
+      {
+        "selectionId": 7017917,
+        "runnerOrder": 20,
+        "winRunnerOdds": {
+          "trueOdds": {
+            "decimalOdds": {
+              "decimalOdds": 1.869565217391304
+            },
+            "fractionalOdds": {
+              "numerator": 100,
+              "denominator": 115
+            }
+          },
+          "decimalDisplayOdds": {
+            "decimalOdds": 1.87
+          },
+          "fractionalDisplayOdds": {
+            "numerator": 100,
+            "denominator": 115
+          },
+          "americanDisplayOdds": {
+            "americanOdds": -115,
+            "americanOddsInt": -115
+          }
+        },
+        "previousWinRunnerOdds": [],
+        "handicap": 43.5,
+        "runnerStatus": "ACTIVE"
+      }
+    ],
+    "eachwayAvailable": false,
+    "legTypes": [
+      "SIMPLE_SELECTION"
+    ],
+    "hasBPE": false,
+    "hasSGM": true,
+    "betDelay": 4,
+    "rule4Deductions": [],
+    "marketStatus": "OPEN",
+    "bettingType": "MOVING_HANDICAP"
+  }
+]
