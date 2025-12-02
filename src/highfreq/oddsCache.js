@@ -4,6 +4,8 @@
 class OddsCache {
     constructor() {
       this.cache = new Map();
+      this.recentChanges = [];
+      this.maxRecentChanges = 100;
     }
   
     /**
@@ -70,6 +72,23 @@ class OddsCache {
       }
       
       return removed;
+    }
+
+    /**
+     * Record a change for recent changes tracking
+     */
+    recordChange(change) {
+      this.recentChanges.unshift(change);
+      if (this.recentChanges.length > this.maxRecentChanges) {
+        this.recentChanges.pop();
+      }
+    }
+
+    /**
+     * Get recent changes (most recent first)
+     */
+    getRecentChanges(count = 10) {
+      return this.recentChanges.slice(0, count);
     }
   }
   

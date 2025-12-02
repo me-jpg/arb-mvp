@@ -1,50 +1,45 @@
 // src/highfreq/lightweightScraper.js
-// Lightweight scraper for high-frequency tracking
-// Reuses browser instances, minimal markets
+// FIXED: Proper eventId generation + line extraction
 
 const config = require('../../config');
-const { createEventId } = require('../core/normalizer');
+const { createEventId, parseGameTime } = require('../core/normalizer');
 
 /**
  * Lightweight scrape - only main markets from limited games
  */
 async function lightweightScrape(scraper, bookName, maxGames = 8) {
   try {
-    console.log(`   DEBUG: Starting scrape for ${bookName}...`);
-    
     // Run full scrape (we'll filter after)
     const allResults = await scraper.scrape();
     
-    console.log(`   DEBUG: ${bookName} returned ${allResults.length} games`);
-    
-    if (allResults.length > 0) {
-      console.log(`   DEBUG: First game sample:`, JSON.stringify(allResults[0], null, 2).substring(0, 500));
+    if (allResults.length === 0) {
+      console.log(`   ⚠️  ${bookName} returned 0 games`);
+      return [];
     }
     
     // Take only first N games
     const limitedResults = allResults.slice(0, maxGames);
     
-    console.log(`   DEBUG: Processing ${limitedResults.length} games...`);
-    
-    // Extract odds records (similar to odds_snapshots format)
+    // Extract odds records
     const oddsRecords = [];
     
     for (const game of limitedResults) {
-      // Generate eventId using normalizer function
-      const eventId = game.eventId || createEventId(game.awayTeam, game.homeTeam, game.gameTime);
+      // ✅ FIXED: Parse gameTime to get just the date (prevents timestamp in eventId)
+      const gameTimeData = parseGameTime(game.gameTime);
+      const gameDate = gameTimeData.date; // Just YYYY-MM-DD, no timestamp
+      
+      // Generate stable eventId (same game = same ID across cycles)
+      const eventId = createEventId(game.awayTeam, game.homeTeam, gameDate);
       
       if (!eventId) {
-        console.log(`   DEBUG: Failed to generate eventId for game:`, game);
+        console.warn(`   ⚠️  Failed to generate eventId for ${game.awayTeam} @ ${game.homeTeam}`);
         continue;
       }
       
       const markets = game.markets || {};
       
-      console.log(`   DEBUG: Game ${eventId} has ${Object.keys(markets).length} markets`);
-      
       // Process each market
       Object.entries(markets).forEach(([marketKey, marketData]) => {
-        // Market type is the key itself (moneyline, spread, total)
         const marketType = marketKey;
         
         // Only track configured markets
@@ -52,10 +47,7 @@ async function lightweightScrape(scraper, bookName, maxGames = 8) {
           return;
         }
         
-        // Extract line value if present in marketData
-        let line = marketData.line || null;
-        
-        // Moneyline
+        // MONEYLINE - no line value
         if (marketType === 'moneyline') {
           if (marketData.awayOdds) {
             oddsRecords.push({
@@ -64,7 +56,8 @@ async function lightweightScrape(scraper, bookName, maxGames = 8) {
               marketType: 'moneyline',
               side: 'away',
               line: null,
-              price: marketData.awayOdds
+              price: marketData.awayOdds,
+              timestamp: game.timestamp || Date.now()
             });
           }
           if (marketData.homeOdds) {
@@ -74,71 +67,72 @@ async function lightweightScrape(scraper, bookName, maxGames = 8) {
               marketType: 'moneyline',
               side: 'home',
               line: null,
-              price: marketData.homeOdds
+              price: marketData.homeOdds,
+              timestamp: game.timestamp || Date.now()
             });
           }
         }
         
-        // Spread
-        if (marketType === 'spread') {
-          if (marketData.awayOdds) {
+        // SPREAD - line is in awayLine/homeLine
+        else if (marketType === 'spread') {
+          if (marketData.awayOdds && marketData.awayLine !== undefined) {
             oddsRecords.push({
               eventId,
               book: bookName,
               marketType: 'spread',
               side: 'away',
-              line,
-              price: marketData.awayOdds
+              line: marketData.awayLine,  // ✅ FIXED: Use awayLine
+              price: marketData.awayOdds,
+              timestamp: game.timestamp || Date.now()
             });
           }
-          if (marketData.homeOdds) {
+          if (marketData.homeOdds && marketData.homeLine !== undefined) {
             oddsRecords.push({
               eventId,
               book: bookName,
               marketType: 'spread',
               side: 'home',
-              line,
-              price: marketData.homeOdds
+              line: marketData.homeLine,  // ✅ FIXED: Use homeLine
+              price: marketData.homeOdds,
+              timestamp: game.timestamp || Date.now()
             });
           }
         }
         
-        // Total
-        if (marketType === 'total') {
-          if (marketData.overOdds) {
-            oddsRecords.push({
-              eventId,
-              book: bookName,
-              marketType: 'total',
-              side: 'over',
-              line,
-              price: marketData.overOdds
-            });
-          }
-          if (marketData.underOdds) {
-            oddsRecords.push({
-              eventId,
-              book: bookName,
-              marketType: 'total',
-              side: 'under',
-              line,
-              price: marketData.underOdds
-            });
+        // TOTAL - line is in line property
+        else if (marketType === 'total') {
+          const totalLine = marketData.line;
+          if (totalLine !== undefined) {
+            if (marketData.overOdds) {
+              oddsRecords.push({
+                eventId,
+                book: bookName,
+                marketType: 'total',
+                side: 'over',
+                line: totalLine,
+                price: marketData.overOdds,
+                timestamp: game.timestamp || Date.now()
+              });
+            }
+            if (marketData.underOdds) {
+              oddsRecords.push({
+                eventId,
+                book: bookName,
+                marketType: 'total',
+                side: 'under',
+                line: totalLine,
+                price: marketData.underOdds,
+                timestamp: game.timestamp || Date.now()
+              });
+            }
           }
         }
       });
     }
     
-    console.log(`   DEBUG: ${bookName} extracted ${oddsRecords.length} odds records from ${limitedResults.length} games`);
-    
-    if (oddsRecords.length > 0) {
-      console.log(`   DEBUG: Sample odds record:`, oddsRecords[0]);
-    }
-    
     return oddsRecords;
   } catch (error) {
-    console.error(`HF scrape error (${bookName}):`, error.message);
-    console.error(`   Stack: ${error.stack}`);
+    console.error(`❌ HF scrape error (${bookName}):`, error.message);
     return [];
   }
 }

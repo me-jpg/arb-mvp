@@ -1,10 +1,11 @@
 // src/highfreq/hfTracker.js
-// High-frequency line tracking engine
+// OPTIMIZED: Parallel scraping for faster cycle times
 
 const { lightweightScrape } = require('./lightweightScraper');
 const { detectChanges } = require('./changeDetector');
 const oddsCache = require('./oddsCache');
 const config = require('../../config');
+const wsServer = require('../dashboard/ws-server');
 
 /**
  * Run one high-frequency cycle
@@ -15,33 +16,75 @@ async function runHighFrequencyCycle({ scrapers, db, logger }) {
   const allOddsRecords = [];
   const bookResults = {};
 
-  // Scrape from each enabled book
+  // Get enabled books
   const enabledBooks = config.highFrequency.books;
   const maxGames = config.highFrequency.maxEvents;
 
-  for (const bookName of enabledBooks) {
+  // ✅ OPTIMIZATION: Scrape all books IN PARALLEL (not sequential)
+  const scrapePromises = enabledBooks.map(async (bookName) => {
     const scraper = scrapers[bookName];
     if (!scraper) {
-      console.warn(`Scraper not available for ${bookName}`);
-      continue;
+      console.warn(`   ⚠️  Scraper not available for ${bookName}`);
+      return { bookName, records: [], success: false, durationMs: 0 };
     }
 
     const bookStart = Date.now();
-    const oddsRecords = await lightweightScrape(scraper, bookName, maxGames);
-    const bookDuration = Date.now() - bookStart;
+    try {
+      const records = await lightweightScrape(scraper, bookName, maxGames);
+      const durationMs = Date.now() - bookStart;
 
-    allOddsRecords.push(...oddsRecords);
+      if (records.length === 0) {
+        console.warn(`   ⚠️  ${bookName} returned 0 games`);
+      }
+
+      return {
+        bookName,
+        records,
+        success: true,
+        durationMs
+      };
+    } catch (error) {
+      console.error(`❌ HF scrape error (${bookName}):`, error.message);
+      logger.logError(error, `HF scrape (${bookName})`);
+      return {
+        bookName,
+        records: [],
+        success: false,
+        durationMs: Date.now() - bookStart,
+        error: error.message
+      };
+    }
+  });
+
+  // Wait for all scrapes to complete
+  const results = await Promise.all(scrapePromises);
+
+  // Aggregate results
+  results.forEach(({ bookName, records, success, durationMs, error }) => {
+    if (success) {
+      allOddsRecords.push(...records);
+    }
+    
     bookResults[bookName] = {
-      records: oddsRecords.length,
-      durationMs: bookDuration
+      records: records.length,
+      durationMs,
+      success,
+      error: error || null
     };
-  }
+  });
 
   // Detect changes
   const changes = detectChanges(allOddsRecords, oddsCache);
 
+  // Broadcast line changes
+  if (changes.length > 0) {
+    changes.forEach(change => {
+      wsServer.sendMessage('line_change', change);
+    });
+  }
+
   // Persist changes to database
-  if (changes.length > 0 && db.connected) {
+  if (changes.length > 0 && db && db.connected) {
     try {
       await db.insertLineChanges(changes);
       
@@ -50,23 +93,19 @@ async function runHighFrequencyCycle({ scrapers, db, logger }) {
         logger.logLineChange(change);
       });
     } catch (error) {
-      console.error('Failed to persist line changes:', error.message);
+      console.error('   ❌ Failed to persist line changes:', error.message);
     }
   }
 
   const cycleDuration = Date.now() - cycleStart;
 
-  // Return cycle stats
   return {
-    oddsRecords: allOddsRecords.length,
+    cycleTime: cycleDuration,
+    oddsChecked: allOddsRecords.length,
     changesDetected: changes.length,
     cacheSize: oddsCache.size(),
-    durationMs: cycleDuration,
-    bookResults,
-    changes
+    bookResults
   };
 }
 
-module.exports = {
-  runHighFrequencyCycle
-};
+module.exports = { runHighFrequencyCycle };

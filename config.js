@@ -50,5 +50,20 @@ module.exports = {
     maxEvents: parseInt(process.env.HF_MAX_EVENTS || '8'), // Track top 8 games
     markets: ['moneyline', 'spread', 'total'], // Which markets to track
     books: ['draftkings', 'fanduel', 'betmgm', 'espnbet'] // Which books to track
+  },
+  
+  // Phase 3: Latency & stale line analytics
+  latency: {
+    enabled: process.env.LATENCY_ENABLED === 'true' || false,
+    windowMs: parseInt(process.env.LATENCY_WINDOW_MS || '30000'), // 30 second windows
+    intervalMs: parseInt(process.env.LATENCY_ANALYZER_INTERVAL_MS || '60000'), // Analyze every 60s
+    staleThresholdMs: parseInt(process.env.STALE_LINE_THRESHOLD_MS || '60000'), // 60s stale threshold
+    minWindowsPerBook: parseInt(process.env.LATENCY_MIN_WINDOWS_PER_BOOK || '5') // Min windows to qualify
+  },
+  
+  // Phase 4: Real-time dashboard
+  dashboard: {
+    enabled: process.env.DASHBOARD_ENABLED === 'true' || true,
+    port: parseInt(process.env.DASHBOARD_PORT || '8787')
   }
 };

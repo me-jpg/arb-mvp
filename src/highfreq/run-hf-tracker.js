@@ -1,5 +1,5 @@
 // src/highfreq/run-hf-tracker.js
-// High-frequency line tracking runner
+// ENHANCED: Better stats, parallel scraping, improved shutdown
 
 require('dotenv').config();
 const puppeteer = require('puppeteer');
@@ -12,6 +12,7 @@ const db = require('../utils/db');
 const logger = require('../utils/logger');
 const oddsCache = require('./oddsCache');
 const config = require('../../config');
+const wsServer = require('../dashboard/ws-server');
 
 // Browser instances (shared across cycles)
 const browsers = {
@@ -21,20 +22,28 @@ const browsers = {
   espnbet: null
 };
 
-// Scraper instances (shared across cycles)
-const scrapers = {
-  draftkings: null,
-  fanduel: null,
-  betmgm: null,
-  espnbet: null
-};
+// Scraper instances
+const scrapers = {};
 
+// Stats tracking
 let cycleCount = 0;
 let totalChanges = 0;
+let totalOdds = 0;
+let startTime = Date.now();
 let isRunning = false;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function formatUptime(ms) {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  
+  if (hours > 0) return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+  if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+  return `${seconds}s`;
 }
 
 async function initialize() {
@@ -46,59 +55,73 @@ async function initialize() {
   console.log(`📈 Markets: ${config.highFrequency.markets.join(', ')}`);
   console.log(`📚 Books: ${config.highFrequency.books.join(', ')}`);
   console.log('='.repeat(60));
-
-  // Initialize browsers
   console.log('\n🌐 Initializing browsers...');
-  const browserConfig = {
-    headless: config.headless,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-blink-features=AutomationControlled'
-    ]
-  };
 
-  const enabledBooks = config.highFrequency.books;
+  // Initialize browsers in parallel
+  const browserPromises = [];
 
-  if (enabledBooks.includes('draftkings')) {
-    try {
-      browsers.draftkings = await puppeteer.launch(browserConfig);
-      scrapers.draftkings = new DraftKingsScraper(browsers.draftkings);
-      console.log('  ✅ DraftKings browser ready');
-    } catch (error) {
-      console.error('  ❌ DraftKings failed:', error.message);
-    }
+  if (config.highFrequency.books.includes('draftkings')) {
+    browserPromises.push(
+      puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      }).then(browser => {
+        browsers.draftkings = browser;
+        scrapers.draftkings = new DraftKingsScraper(browser);
+        console.log('  ✅ DraftKings browser ready');
+      }).catch(err => {
+        console.error('  ❌ DraftKings browser failed:', err.message);
+      })
+    );
   }
 
-  if (enabledBooks.includes('fanduel')) {
-    try {
-      browsers.fanduel = await puppeteer.launch(browserConfig);
-      scrapers.fanduel = new FanDuelScraper(browsers.fanduel);
-      console.log('  ✅ FanDuel browser ready');
-    } catch (error) {
-      console.error('  ❌ FanDuel failed:', error.message);
-    }
+  if (config.highFrequency.books.includes('fanduel')) {
+    browserPromises.push(
+      puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      }).then(browser => {
+        browsers.fanduel = browser;
+        scrapers.fanduel = new FanDuelScraper(browser);
+        console.log('  ✅ FanDuel browser ready');
+      }).catch(err => {
+        console.error('  ❌ FanDuel browser failed:', err.message);
+      })
+    );
   }
 
-  if (enabledBooks.includes('betmgm')) {
-    try {
-      browsers.betmgm = await puppeteer.launch(browserConfig);
-      scrapers.betmgm = new BetMGMScraper(browsers.betmgm);
-      console.log('  ✅ BetMGM browser ready');
-    } catch (error) {
-      console.error('  ❌ BetMGM failed:', error.message);
-    }
+  if (config.highFrequency.books.includes('betmgm')) {
+    browserPromises.push(
+      puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      }).then(browser => {
+        browsers.betmgm = browser;
+        scrapers.betmgm = new BetMGMScraper(browser);
+        console.log('  ✅ BetMGM browser ready');
+      }).catch(err => {
+        console.error('  ❌ BetMGM browser failed:', err.message);
+      })
+    );
   }
 
-  if (enabledBooks.includes('espnbet')) {
-    try {
-      browsers.espnbet = await puppeteer.launch(browserConfig);
-      scrapers.espnbet = new ESPNBetScraper(browsers.espnbet);
-      console.log('  ✅ ESPN Bet browser ready');
-    } catch (error) {
-      console.error('  ❌ ESPN Bet failed:', error.message);
-    }
+  if (config.highFrequency.books.includes('espnbet')) {
+    browserPromises.push(
+      puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      }).then(browser => {
+        browsers.espnbet = browser;
+        scrapers.espnbet = new ESPNBetScraper(browser);
+        console.log('  ✅ ESPN Bet browser ready');
+      }).catch(err => {
+        console.error('  ❌ ESPN Bet browser failed:', err.message);
+      })
+    );
   }
+
+  // Wait for all browsers to initialize
+  await Promise.all(browserPromises);
 
   // Connect to database
   if (config.database?.enabled) {
@@ -106,6 +129,9 @@ async function initialize() {
   } else {
     console.log('⚠️  Database disabled - changes will only log to file');
   }
+
+  // Initialize WebSocket server for dashboard
+  wsServer.initialize();
 
   console.log('\n⚡ High-frequency tracking started...\n');
 }
@@ -127,90 +153,107 @@ async function runLoop() {
         logger
       });
 
+      // Update totals
       totalChanges += stats.changesDetected;
+      totalOdds += stats.oddsChecked;
 
-      // Display results
-      console.log(`📊 Odds checked: ${stats.oddsRecords}`);
+      // Print stats
+      console.log(`📊 Odds checked: ${stats.oddsChecked}`);
       console.log(`🔄 Changes detected: ${stats.changesDetected}`);
       console.log(`💾 Cache size: ${stats.cacheSize}`);
-      
-      // Book breakdown
-      Object.entries(stats.bookResults).forEach(([book, result]) => {
-        console.log(`   ${book}: ${result.records} records (${result.durationMs}ms)`);
+
+      // Print book-specific results (sorted by duration)
+      const sortedBooks = Object.entries(stats.bookResults)
+        .sort(([, a], [, b]) => a.durationMs - b.durationMs);
+
+      sortedBooks.forEach(([book, result]) => {
+        const icon = result.success ? '✓' : '✗';
+        const time = `${result.durationMs}ms`;
+        console.log(`   ${icon} ${book}: ${result.records} records (${time})`);
       });
 
-      // Show changes if any
-      if (stats.changes.length > 0) {
-        console.log('\n📈 CHANGES:');
-        stats.changes.forEach(change => {
-          const lineInfo = change.newLine ? ` [${change.oldLine} → ${change.newLine}]` : '';
-          console.log(`   ${change.book} - ${change.marketType} ${change.side}${lineInfo}: ${change.oldPrice} → ${change.newPrice} (${change.changeType})`);
+      // Print changes if any
+      if (stats.changesDetected > 0) {
+        console.log('\n🔈 CHANGES:');
+        const changes = oddsCache.getRecentChanges(10); // Get last 10
+        changes.forEach(change => {
+          const line = change.line ? ` [${change.oldLine} → ${change.line}]` : '';
+          const price = change.price ? `: ${change.oldPrice} → ${change.price}` : '';
+          console.log(`   ${change.book} - ${change.marketType} ${change.side}${line}${price} (${change.changeType})`);
         });
+        if (stats.changesDetected > 10) {
+          console.log(`   ... and ${stats.changesDetected - 10} more changes`);
+        }
       }
 
-      console.log(`⏱️  Cycle time: ${stats.durationMs}ms`);
-      console.log(`📊 Session: ${totalChanges} total changes | ${cycleCount} cycles`);
+      const cycleDuration = Date.now() - cycleStart;
+      console.log(`⏱️  Cycle time: ${cycleDuration}ms`);
 
-      // Prune old cache entries every 10 cycles
-      if (cycleCount % 10 === 0) {
-        const pruned = oddsCache.prune(3600000); // 1 hour
-        if (pruned > 0) {
-          console.log(`🧹 Pruned ${pruned} old cache entries`);
-        }
+      // Enhanced session stats
+      const uptime = Date.now() - startTime;
+      const avgChanges = (totalChanges / cycleCount).toFixed(1);
+      const avgCycleTime = Math.round(uptime / cycleCount / 1000);
+      console.log(`📊 Session: ${totalChanges} changes | ${totalOdds} odds | ${cycleCount} cycles | ${formatUptime(uptime)} uptime`);
+      console.log(`📈 Averages: ${avgChanges} changes/cycle | ${avgCycleTime}s/cycle`);
+
+      // Warn if cycle time exceeds interval
+      if (cycleDuration > INTERVAL_MS) {
+        console.log(`⚠️  Cycle took longer than interval (${cycleDuration}ms > ${INTERVAL_MS}ms)`);
+      }
+
+      // Warn if cycle time is very long
+      if (cycleDuration > 30000) {
+        console.log(`⚠️  WARNING: Cycle time exceeded 30s - consider reducing maxEvents or disabling slow books`);
+      }
+
+      // Wait for next cycle
+      const elapsed = Date.now() - cycleStart;
+      const delay = Math.max(0, INTERVAL_MS - elapsed);
+      
+      if (delay > 0) {
+        await sleep(delay);
       }
 
     } catch (error) {
       console.error('❌ Cycle error:', error.message);
-    }
-
-    // Calculate delay to maintain interval
-    const elapsed = Date.now() - cycleStart;
-    const delay = Math.max(0, INTERVAL_MS - elapsed);
-    
-    if (delay > 0) {
-      await sleep(delay);
+      logger.logError(error, 'HF Cycle');
+      
+      const elapsed = Date.now() - cycleStart;
+      const delay = Math.max(0, INTERVAL_MS - elapsed);
+      
+      if (delay > 0) {
+        await sleep(delay);
+      }
     }
   }
 }
 
 async function shutdown() {
-  console.log('\n\n🛑 Shutting down gracefully...');
-  
+  console.log('\n🛑 Shutting down gracefully...');
   isRunning = false;
 
-  // Close browsers
-  console.log('🌐 Closing browsers...');
-  const closePromises = [];
-  
-  Object.entries(browsers).forEach(([name, browser]) => {
-    if (browser) {
-      closePromises.push(
-        browser.close().catch(e => console.error(`Error closing ${name}:`, e.message))
-      );
-    }
-  });
-  
-  await Promise.all(closePromises);
-  console.log('✅ All browsers closed');
-
-  // Close database
   if (db.connected) {
     await db.close();
   }
 
-  console.log(`\n📊 Final Stats:`);
-  console.log(`   Cycles: ${cycleCount}`);
-  console.log(`   Total changes: ${totalChanges}`);
-  console.log(`   Cache size: ${oddsCache.size()}`);
+  console.log('🌐 Closing browsers...');
   
+  for (const [name, browser] of Object.entries(browsers)) {
+    if (browser) {
+      await browser.close();
+      console.log(`  ✅ ${name} browser closed`);
+    }
+  }
+
+  console.log('👋 Goodbye!');
   process.exit(0);
 }
 
-// Handle graceful shutdown
+// Signal handlers
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
-// Main execution
+// Main
 async function main() {
   try {
     await initialize();

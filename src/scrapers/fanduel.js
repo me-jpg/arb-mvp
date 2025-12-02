@@ -1,11 +1,11 @@
-// src/scrapers/draftkings.js
-// Enhanced scraper: NFL Moneyline + Spread + Total
+// src/scrapers/fanduel.js
+// CORRECTED: Actual FanDuel scraper (previous file had DraftKings code)
 
 const puppeteer = require('puppeteer');
 const config = require('../../config');
 const Helpers = require('../utils/helpers');
 
-class DraftKingsScraper {
+class FanDuelScraper {
   constructor(browser = null) {
     this.browser = browser;
     this.ownsBrowser = false;
@@ -38,175 +38,163 @@ class DraftKingsScraper {
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
       );
 
-      await page.goto('https://sportsbook.draftkings.com/leagues/football/nfl', {
+      await page.goto('https://sportsbook.fanduel.com/football/nfl', {
         waitUntil: 'domcontentloaded',
-        timeout: 20000  // 20 second timeout
+        timeout: 20000
       });
 
       await Helpers.delay(15000, 18000);
 
       results = await page.evaluate(() => {
         const games = [];
-        const pageText = document.body.innerText;
-        const lines = pageText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         
-        // Find all "AT" markers (one per game)
-        const atIndices = [];
-        lines.forEach((line, idx) => {
-          if (line === 'AT') {
-            atIndices.push(idx);
-          }
-        });
+        // FanDuel uses a table structure with rows for each game
+        const gameRows = document.querySelectorAll('[role="row"]');
         
-        // Extract ALL odds from page
-        const oddsPattern = /[+\-−]\d{3,4}/g;
-        const allOddsMatches = [...pageText.matchAll(oddsPattern)];
-        const allOdds = allOddsMatches.map(m => {
-          const cleaned = m[0].replace('−', '-');
-          return parseInt(cleaned);
-        });
-        
-        // Extract spread values (look for numbers like "-3.5", "PK", "+7.5")
-        const spreadPattern = /([+\-−]?\d+\.?\d*)\s*(?=\s*[+\-−]\d{3})/g;
-        const spreadMatches = [...pageText.matchAll(spreadPattern)];
-        
-        // Try to extract game times from DOM elements
-        // DraftKings shows times like "SAT 1:00 PM" or "SUN 4:25 PM"
-        const timePattern = /(MON|TUE|WED|THU|FRI|SAT|SUN)\s+(\d{1,2}:\d{2}\s*(?:AM|PM))/gi;
-        const timeMatches = [...pageText.matchAll(timePattern)];
-        
-        // Helper to convert DK time format to ISO
-        function parseGameTime(dayStr, timeStr) {
+        gameRows.forEach(row => {
           try {
-            const now = new Date();
-            const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+            // Get team names from aria-labels or text content
+            const teamLinks = row.querySelectorAll('a[aria-label*="@"]');
+            if (teamLinks.length === 0) return;
             
-            const dayMap = {
-              'SUN': 0, 'MON': 1, 'TUE': 2, 'WED': 3,
-              'THU': 4, 'FRI': 5, 'SAT': 6
-            };
+            // Extract teams from aria-label like "Buffalo Bills @ Los Angeles Rams"
+            const matchupText = teamLinks[0].getAttribute('aria-label');
+            if (!matchupText || !matchupText.includes('@')) return;
             
-            const targetDay = dayMap[dayStr.toUpperCase()];
-            if (targetDay === undefined) return null;
+            const teams = matchupText.split('@').map(t => t.trim());
+            if (teams.length !== 2) return;
             
-            // Calculate days until target day
-            let daysAhead = targetDay - currentDay;
-            if (daysAhead < 0) daysAhead += 7; // Next week
-            if (daysAhead === 0 && now.getHours() > 12) daysAhead = 7; // Past today, assume next week
+            const awayTeam = teams[0];
+            const homeTeam = teams[1];
             
-            // Parse time (e.g., "1:00 PM")
-            const timeParts = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-            if (!timeParts) return null;
+            // Get all odds buttons in this row
+            const oddsButtons = row.querySelectorAll('[role="button"]');
+            if (oddsButtons.length < 6) return; // Need at least 6 for full markets
             
-            let hours = parseInt(timeParts[1]);
-            const minutes = parseInt(timeParts[2]);
-            const isPM = timeParts[3].toUpperCase() === 'PM';
+            const markets = {};
             
-            if (isPM && hours !== 12) hours += 12;
-            if (!isPM && hours === 12) hours = 0;
+            // FanDuel structure: [spread_away, spread_home, total_over, total_under, ml_away, ml_home]
+            // or sometimes: [ml_away, ml_home, spread_away, spread_home, total_over, total_under]
             
-            // Create date
-            const gameDate = new Date(now);
-            gameDate.setDate(gameDate.getDate() + daysAhead);
-            gameDate.setHours(hours, minutes, 0, 0);
-            
-            return gameDate.toISOString();
-          } catch (error) {
-            return null;
-          }
-        }
-        
-        // DraftKings pattern per game:
-        // Index 0: away spread odds
-        // Index 1: home spread odds  
-        // Index 2: away moneyline odds
-        // Index 3: over odds
-        // Index 4: under odds
-        // Index 5: home moneyline odds
-        
-        atIndices.forEach((atIdx, gameIndex) => {
-          const awayTeam = lines[atIdx - 1];
-          const homeTeam = lines[atIdx + 1];
-          
-          // Try to find game time for this game
-          let gameTime = null;
-          if (timeMatches[gameIndex]) {
-            gameTime = parseGameTime(timeMatches[gameIndex][1], timeMatches[gameIndex][2]);
-          }
-          
-          // Base index for this game's odds (6 odds per game)
-          const baseIdx = gameIndex * 6;
-          
-          // Extract all market data
-          const awaySpreadOdds = allOdds[baseIdx + 0];
-          const homeSpreadOdds = allOdds[baseIdx + 1];
-          const awayMLOdds = allOdds[baseIdx + 2];
-          const overOdds = allOdds[baseIdx + 3];
-          const underOdds = allOdds[baseIdx + 4];
-          const homeMLOdds = allOdds[baseIdx + 5];
-          
-          // Try to extract spread values
-          // DK shows spread like: "LAR -3.5 -110" and "CAR +3.5 -110"
-          // We need to parse these from the text
-          let awaySpread = null;
-          let homeSpread = null;
-          let totalLine = null;
-          
-          // Look for spread numbers near the team names
-          // This is a simplified extraction - may need refinement
-          const gameSection = lines.slice(atIdx - 5, atIdx + 10).join(' ');
-          const spreadNums = gameSection.match(/[+\-−]?\d+\.5/g);
-          
-          if (spreadNums && spreadNums.length >= 2) {
-            awaySpread = parseFloat(spreadNums[0].replace('−', '-'));
-            homeSpread = parseFloat(spreadNums[1].replace('−', '-'));
-          }
-          
-          // Total line extraction
-          // Look for "O 46.5" or "U 46.5" pattern
-          const totalMatch = gameSection.match(/[OU]\s+(\d+\.5)/);
-          if (totalMatch) {
-            totalLine = parseFloat(totalMatch[1]);
-          }
-          
-          // Build market object
-          const markets = {};
-          
-          // Moneyline
-          if (awayMLOdds !== undefined && homeMLOdds !== undefined) {
-            markets.moneyline = {
-              awayOdds: awayMLOdds,
-              homeOdds: homeMLOdds
-            };
-          }
-          
-          // Spread
-          if (awaySpread !== null && homeSpread !== null && 
-              awaySpreadOdds !== undefined && homeSpreadOdds !== undefined) {
-            markets.spread = {
-              awayLine: awaySpread,
-              awayOdds: awaySpreadOdds,
-              homeLine: homeSpread,
-              homeOdds: homeSpreadOdds
-            };
-          }
-          
-          // Total
-          if (totalLine !== null && overOdds !== undefined && underOdds !== undefined) {
-            markets.total = {
-              line: totalLine,
-              overOdds: overOdds,
-              underOdds: underOdds
-            };
-          }
-          
-          if (awayTeam && homeTeam && Object.keys(markets).length > 0) {
-            games.push({
-              awayTeam,
-              homeTeam,
-              gameTime: gameTime || new Date().toISOString(), // Fallback to now if not found
-              markets
+            // Parse odds from buttons
+            const oddsData = [];
+            oddsButtons.forEach(button => {
+              const ariaLabel = button.getAttribute('aria-label') || '';
+              const textContent = button.textContent.trim();
+              
+              // Extract odds (look for +/- numbers)
+              const oddsMatch = textContent.match(/[+\-]\d{3,4}/);
+              if (!oddsMatch) return;
+              
+              const odds = parseInt(oddsMatch[0]);
+              
+              // Extract line value if present
+              const lineMatch = textContent.match(/([+\-]?\d+\.?\d*)/);
+              const line = lineMatch ? parseFloat(lineMatch[1]) : null;
+              
+              oddsData.push({
+                ariaLabel,
+                textContent,
+                odds,
+                line
+              });
             });
+            
+            // Now map to markets based on patterns
+            // This is heuristic - FanDuel's structure can vary
+            
+            if (oddsData.length >= 6) {
+              // Common pattern: spread, total, moneyline (6 odds total)
+              
+              // MONEYLINE - usually last 2 or first 2
+              // Check for no line values as indicator
+              const mlCandidates = oddsData.filter(d => d.line === null || Math.abs(d.line) > 30);
+              
+              if (mlCandidates.length >= 2) {
+                markets.moneyline = {
+                  awayOdds: mlCandidates[0].odds,
+                  homeOdds: mlCandidates[1].odds
+                };
+              }
+              
+              // SPREAD - look for small line values (-14 to +14 typically)
+              const spreadCandidates = oddsData.filter(d => 
+                d.line !== null && Math.abs(d.line) <= 20
+              );
+              
+              if (spreadCandidates.length >= 2) {
+                markets.spread = {
+                  awayLine: spreadCandidates[0].line,
+                  awayOdds: spreadCandidates[0].odds,
+                  homeLine: spreadCandidates[1].line,
+                  homeOdds: spreadCandidates[1].odds
+                };
+              }
+              
+              // TOTAL - look for larger line values (typically 35-60 for NFL)
+              const totalCandidates = oddsData.filter(d => 
+                d.line !== null && d.line >= 30 && d.line <= 70
+              );
+              
+              if (totalCandidates.length >= 2) {
+                // Both over and under should have same line
+                const totalLine = totalCandidates[0].line;
+                markets.total = {
+                  line: totalLine,
+                  overOdds: totalCandidates[0].odds,
+                  underOdds: totalCandidates[1].odds
+                };
+              }
+            }
+            
+            // Try to extract game time
+            let gameTime = null;
+            try {
+              const timeEl = row.querySelector('[class*="time"], [class*="date"], time');
+              if (timeEl) {
+                const timeText = timeEl.textContent.trim();
+                // FanDuel shows times like "SAT 1:00 PM"
+                const timePattern = /(MON|TUE|WED|THU|FRI|SAT|SUN)\s+(\d{1,2}:\d{2}\s*(?:AM|PM))/i;
+                const match = timeText.match(timePattern);
+                
+                if (match) {
+                  const dayMap = {'SUN': 0, 'MON': 1, 'TUE': 2, 'WED': 3, 'THU': 4, 'FRI': 5, 'SAT': 6};
+                  const targetDay = dayMap[match[1].toUpperCase()];
+                  const now = new Date();
+                  let daysAhead = targetDay - now.getDay();
+                  if (daysAhead < 0) daysAhead += 7;
+                  
+                  const timeParts = match[2].match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+                  if (timeParts) {
+                    let hours = parseInt(timeParts[1]);
+                    const minutes = parseInt(timeParts[2]);
+                    const isPM = timeParts[3].toUpperCase() === 'PM';
+                    
+                    if (isPM && hours !== 12) hours += 12;
+                    if (!isPM && hours === 12) hours = 0;
+                    
+                    const gameDate = new Date(now);
+                    gameDate.setDate(gameDate.getDate() + daysAhead);
+                    gameDate.setHours(hours, minutes, 0, 0);
+                    gameTime = gameDate.toISOString();
+                  }
+                }
+              }
+            } catch (error) {
+              // Fallback to now
+            }
+            
+            if (Object.keys(markets).length > 0) {
+              games.push({
+                awayTeam,
+                homeTeam,
+                gameTime: gameTime || new Date().toISOString(),
+                markets
+              });
+            }
+          } catch (e) {
+            // Skip this game if parsing fails
+            console.error('Error parsing FanDuel game:', e.message);
           }
         });
         
@@ -214,10 +202,9 @@ class DraftKingsScraper {
       });
 
     } catch (error) {
-      Helpers.logError(error, 'DraftKingsScraper');
+      Helpers.logError(error, 'FanDuelScraper');
       throw error;
     } finally {
-      // Only close browser if we created it
       if (this.ownsBrowser && this.browser) {
         await this.browser.close();
       }
@@ -225,10 +212,10 @@ class DraftKingsScraper {
 
     const timestamp = Date.now();
     return results.map(game => ({
-      book: 'draftkings',
+      book: 'fanduel',
       ...game,
       scrapedAt: new Date().toISOString(),
-      url: 'https://sportsbook.draftkings.com/leagues/football/nfl',
+      url: 'https://sportsbook.fanduel.com/football/nfl',
       timestamp
     }));
   }
@@ -241,4 +228,4 @@ class DraftKingsScraper {
   }
 }
 
-module.exports = DraftKingsScraper;
+module.exports = FanDuelScraper;
