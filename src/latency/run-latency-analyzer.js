@@ -5,7 +5,7 @@ const { detectStaleLines } = require('./staleLineDetector');
 const latencyLogger = require('./latencyLogger');
 const db = require('../utils/db');
 const config = require('../../config');
-const wsServer = require('../dashboard/ws-server');
+const wsServer = require('../websocket/ws-server');
 
 let cycleCount = 0;
 let isRunning = false;
@@ -82,11 +82,11 @@ async function runCycle() {
 
     // Log to JSONL
     qualifiedMetrics.forEach(metric => {
-      latencyLogger.logLatencyMetrics([metric]);
+      latencyLogger.logLatencyMetric(metric);
     });
 
     staleLines.forEach(staleLine => {
-      latencyLogger.logStaleLines([staleLine]);
+      latencyLogger.logStaleLine(staleLine);
     });
 
     const cycleDuration = Date.now() - cycleStart;

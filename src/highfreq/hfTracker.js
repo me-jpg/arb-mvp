@@ -5,7 +5,7 @@ const { lightweightScrape } = require('./lightweightScraper');
 const { detectChanges } = require('./changeDetector');
 const oddsCache = require('./oddsCache');
 const config = require('../../config');
-const wsServer = require('../dashboard/ws-server');
+const wsServer = require('../websocket/ws-server');
 
 /**
  * Run one high-frequency cycle
@@ -30,7 +30,7 @@ async function runHighFrequencyCycle({ scrapers, db, logger }) {
 
     const bookStart = Date.now();
     try {
-      const records = await lightweightScrape(scraper, bookName, maxGames);
+      const records = await lightweightScrape(scraper, maxGames);
       const durationMs = Date.now() - bookStart;
 
       if (records.length === 0) {

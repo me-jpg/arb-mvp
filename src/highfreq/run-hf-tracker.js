@@ -12,7 +12,7 @@ const db = require('../utils/db');
 const logger = require('../utils/logger');
 const oddsCache = require('./oddsCache');
 const config = require('../../config');
-const wsServer = require('../dashboard/ws-server');
+const wsServer = require('../websocket/ws-server');
 
 // Browser instances (shared across cycles)
 const browsers = {
@@ -237,23 +237,21 @@ async function shutdown() {
   }
 
   console.log('🌐 Closing browsers...');
-  
-  for (const [name, browser] of Object.entries(browsers)) {
-    if (browser) {
-      await browser.close();
-      console.log(`  ✅ ${name} browser closed`);
-    }
-  }
+  const closePromises = Object.values(browsers)
+    .filter(browser => browser !== null)
+    .map(browser => browser.close().catch(err => {
+      console.error('Error closing browser:', err.message);
+    }));
 
-  console.log('👋 Goodbye!');
+  await Promise.all(closePromises);
+
+  console.log(`📊 Total cycles: ${cycleCount}`);
   process.exit(0);
 }
 
-// Signal handlers
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
-// Main
 async function main() {
   try {
     await initialize();
