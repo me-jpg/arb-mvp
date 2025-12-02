@@ -2,43 +2,61 @@
 const fs = require('fs');
 const path = require('path');
 
-class LatencyLogger {
-  constructor() {
-    this.logsDir = path.join(process.cwd(), 'logs');
-    this.ensureLogDirectory();
-  }
+const LOGS_DIR = path.join(__dirname, '../../logs');
+const LATENCY_LOG = path.join(LOGS_DIR, 'latency-metrics.jsonl');
+const STALE_LOG = path.join(LOGS_DIR, 'stale-lines.jsonl');
 
-  ensureLogDirectory() {
-    if (!fs.existsSync(this.logsDir)) {
-      fs.mkdirSync(this.logsDir, { recursive: true });
-    }
-  }
+// Ensure logs directory exists
+if (!fs.existsSync(LOGS_DIR)) {
+  fs.mkdirSync(LOGS_DIR, { recursive: true });
+}
 
-  appendJsonLine(filename, data) {
-    const filepath = path.join(this.logsDir, filename);
-    const line = JSON.stringify(data) + '\n';
+/**
+ * Log latency metrics to JSONL file
+ * @param {Object} metric - Latency metric object
+ */
+function logLatencyMetric(metric) {
+  try {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      book: metric.book,
+      firstMoverFraction: metric.firstMoverFraction,
+      avgDelayMs: metric.avgDelayMs,
+      totalWindows: metric.totalWindows,
+      marketBreakdown: metric.marketBreakdown || {}
+    };
     
-    try {
-      fs.appendFileSync(filepath, line, 'utf8');
-    } catch (error) {
-      console.error(`Failed to write to ${filename}:`, error.message);
-    }
-  }
-
-  logLatencyMetrics(metrics) {
-    metrics.forEach(metric => {
-      this.appendJsonLine('latency-metrics.jsonl', {
-        timestamp: new Date().toISOString(),
-        ...metric
-      });
-    });
-  }
-
-  logStaleLines(staleLines) {
-    staleLines.forEach(staleLine => {
-      this.appendJsonLine('stale-lines.jsonl', staleLine);
-    });
+    const line = JSON.stringify(logEntry) + '\n';
+    fs.appendFileSync(LATENCY_LOG, line, 'utf8');
+  } catch (error) {
+    console.error('Error logging latency metric:', error.message);
   }
 }
 
-module.exports = new LatencyLogger();
+/**
+ * Log stale lines to JSONL file
+ * @param {Object} staleLine - Stale line object
+ */
+function logStaleLine(staleLine) {
+  try {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      book: staleLine.book,
+      eventId: staleLine.eventId,
+      marketType: staleLine.marketType,
+      side: staleLine.side,
+      stalenessMs: staleLine.stalenessMs,
+      lastUpdate: staleLine.lastUpdate
+    };
+    
+    const line = JSON.stringify(logEntry) + '\n';
+    fs.appendFileSync(STALE_LOG, line, 'utf8');
+  } catch (error) {
+    console.error('Error logging stale line:', error.message);
+  }
+}
+
+module.exports = {
+  logLatencyMetric,
+  logStaleLine
+};

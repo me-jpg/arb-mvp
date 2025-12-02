@@ -1,5 +1,5 @@
 // src/highfreq/run-hf-tracker.js
-// ENHANCED: Better stats, parallel scraping, improved shutdown
+// ENHANCED: Better stats, parallel scraping, improved shutdown, AUTO-RESTART
 
 require('dotenv').config();
 const puppeteer = require('puppeteer');
@@ -32,6 +32,10 @@ let totalOdds = 0;
 let startTime = Date.now();
 let isRunning = false;
 
+// Browser restart configuration
+const MAX_CYCLES_BEFORE_RESTART = 50;
+const BROWSER_LAUNCH_ARGS = ['--no-sandbox', '--disable-setuid-sandbox'];
+
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -46,25 +50,20 @@ function formatUptime(ms) {
   return `${seconds}s`;
 }
 
-async function initialize() {
-  console.log('\n' + '='.repeat(60));
-  console.log('⚡ HIGH-FREQUENCY LINE TRACKER');
-  console.log('='.repeat(60));
-  console.log(`📊 Interval: ${config.highFrequency.intervalMs}ms (${config.highFrequency.intervalMs / 1000}s)`);
-  console.log(`🎯 Max Events: ${config.highFrequency.maxEvents}`);
-  console.log(`📈 Markets: ${config.highFrequency.markets.join(', ')}`);
-  console.log(`📚 Books: ${config.highFrequency.books.join(', ')}`);
-  console.log('='.repeat(60));
-  console.log('\n🌐 Initializing browsers...');
-
-  // Initialize browsers in parallel
+/**
+ * Initialize browsers for all enabled books
+ */
+async function initializeBrowsers() {
+  console.log('🌐 Initializing browsers...');
+  
   const browserPromises = [];
+  const enabledBooks = config.highFrequency.books;
 
-  if (config.highFrequency.books.includes('draftkings')) {
+  if (enabledBooks.includes('draftkings')) {
     browserPromises.push(
       puppeteer.launch({
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: BROWSER_LAUNCH_ARGS
       }).then(browser => {
         browsers.draftkings = browser;
         scrapers.draftkings = new DraftKingsScraper(browser);
@@ -75,11 +74,11 @@ async function initialize() {
     );
   }
 
-  if (config.highFrequency.books.includes('fanduel')) {
+  if (enabledBooks.includes('fanduel')) {
     browserPromises.push(
       puppeteer.launch({
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: BROWSER_LAUNCH_ARGS
       }).then(browser => {
         browsers.fanduel = browser;
         scrapers.fanduel = new FanDuelScraper(browser);
@@ -90,11 +89,11 @@ async function initialize() {
     );
   }
 
-  if (config.highFrequency.books.includes('betmgm')) {
+  if (enabledBooks.includes('betmgm')) {
     browserPromises.push(
       puppeteer.launch({
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: BROWSER_LAUNCH_ARGS
       }).then(browser => {
         browsers.betmgm = browser;
         scrapers.betmgm = new BetMGMScraper(browser);
@@ -105,11 +104,11 @@ async function initialize() {
     );
   }
 
-  if (config.highFrequency.books.includes('espnbet')) {
+  if (enabledBooks.includes('espnbet')) {
     browserPromises.push(
       puppeteer.launch({
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: BROWSER_LAUNCH_ARGS
       }).then(browser => {
         browsers.espnbet = browser;
         scrapers.espnbet = new ESPNBetScraper(browser);
@@ -120,8 +119,58 @@ async function initialize() {
     );
   }
 
-  // Wait for all browsers to initialize
   await Promise.all(browserPromises);
+}
+
+/**
+ * Close all browsers
+ */
+async function closeBrowsers() {
+  console.log('🌐 Closing browsers...');
+  
+  const closePromises = Object.entries(browsers)
+    .filter(([_, browser]) => browser !== null)
+    .map(([book, browser]) => 
+      browser.close().catch(err => {
+        console.error(`  ❌ Error closing ${book} browser:`, err.message);
+      })
+    );
+
+  await Promise.all(closePromises);
+  
+  // Clear browser references
+  Object.keys(browsers).forEach(key => {
+    browsers[key] = null;
+  });
+}
+
+/**
+ * Restart all browsers to free memory
+ */
+async function restartBrowsers() {
+  console.log('\n🔄 RESTARTING BROWSERS (memory management)...');
+  
+  await closeBrowsers();
+  await sleep(2000); // Wait 2 seconds before restarting
+  await initializeBrowsers();
+  
+  console.log('✅ Browsers restarted successfully\n');
+}
+
+async function initialize() {
+  console.log('\n' + '='.repeat(60));
+  console.log('⚡ HIGH-FREQUENCY LINE TRACKER');
+  console.log('='.repeat(60));
+  console.log(`📊 Interval: ${config.highFrequency.intervalMs}ms (${config.highFrequency.intervalMs / 1000}s)`);
+  console.log(`🎯 Max Events: ${config.highFrequency.maxEvents}`);
+  console.log(`📈 Markets: ${config.highFrequency.markets.join(', ')}`);
+  console.log(`📚 Books: ${config.highFrequency.books.join(', ')}`);
+  console.log(`🔄 Browser restart: Every ${MAX_CYCLES_BEFORE_RESTART} cycles`);
+  console.log('='.repeat(60));
+  console.log();
+
+  // Initialize browsers
+  await initializeBrowsers();
 
   // Connect to database
   if (config.database?.enabled) {
@@ -144,6 +193,11 @@ async function runLoop() {
     const cycleStart = Date.now();
 
     try {
+      // Restart browsers periodically to prevent memory leaks
+      if (cycleCount > 1 && cycleCount % MAX_CYCLES_BEFORE_RESTART === 0) {
+        await restartBrowsers();
+      }
+
       console.log(`\n⚡ HF CYCLE ${cycleCount} - ${new Date().toLocaleTimeString()}`);
       console.log('─'.repeat(60));
 
@@ -196,6 +250,12 @@ async function runLoop() {
       console.log(`📊 Session: ${totalChanges} changes | ${totalOdds} odds | ${cycleCount} cycles | ${formatUptime(uptime)} uptime`);
       console.log(`📈 Averages: ${avgChanges} changes/cycle | ${avgCycleTime}s/cycle`);
 
+      // Show next restart countdown
+      const cyclesUntilRestart = MAX_CYCLES_BEFORE_RESTART - (cycleCount % MAX_CYCLES_BEFORE_RESTART);
+      if (cyclesUntilRestart <= 10 && cyclesUntilRestart > 0) {
+        console.log(`🔄 Browser restart in ${cyclesUntilRestart} cycles`);
+      }
+
       // Warn if cycle time exceeds interval
       if (cycleDuration > INTERVAL_MS) {
         console.log(`⚠️  Cycle took longer than interval (${cycleDuration}ms > ${INTERVAL_MS}ms)`);
@@ -236,14 +296,7 @@ async function shutdown() {
     await db.close();
   }
 
-  console.log('🌐 Closing browsers...');
-  const closePromises = Object.values(browsers)
-    .filter(browser => browser !== null)
-    .map(browser => browser.close().catch(err => {
-      console.error('Error closing browser:', err.message);
-    }));
-
-  await Promise.all(closePromises);
+  await closeBrowsers();
 
   console.log(`📊 Total cycles: ${cycleCount}`);
   process.exit(0);

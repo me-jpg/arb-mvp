@@ -1,6 +1,6 @@
 // src/latency/run-latency-analyzer.js
 require('dotenv').config();
-const { analyzeLatency } = require('./latencyAnalyzer');
+const { analyzeLatency } = require('./LatencyAnalyzer');
 const { detectStaleLines } = require('./staleLineDetector');
 const latencyLogger = require('./latencyLogger');
 const db = require('../utils/db');
