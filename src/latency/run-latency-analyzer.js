@@ -45,7 +45,7 @@ async function runCycle() {
     console.log(`\n📊 LATENCY CYCLE ${cycleCount} - ${new Date().toLocaleTimeString()}`);
     console.log('─'.repeat(60));
 
-    // Analyze latency
+    // Analyze latency - pass db object directly
     const metrics = await analyzeLatency(db, config.latency.windowMs);
     
     // Filter by min windows
@@ -67,7 +67,7 @@ async function runCycle() {
         console.log(`   ${m.book}: ${pct}% first mover | avg delay: ${delay}ms | windows: ${m.totalWindows}`);
       });
 
-    // Detect stale lines
+    // Detect stale lines - pass db object directly
     const staleLines = await detectStaleLines(db, config.latency.staleThresholdMs);
     
     console.log(`\n⚠️  Stale lines detected: ${staleLines.length}`);
@@ -94,6 +94,7 @@ async function runCycle() {
 
   } catch (error) {
     console.error('❌ Cycle error:', error.message);
+    console.error('Stack:', error.stack);
   }
 }
 
