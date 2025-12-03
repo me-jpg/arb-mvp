@@ -4,7 +4,6 @@
 require('dotenv').config();
 const puppeteer = require('puppeteer');
 const DraftKingsScraper = require('../scrapers/draftkings');
-const FanDuelScraper = require('../scrapers/fanduel');
 const BetMGMScraper = require('../scrapers/betmgm');
 const ESPNBetScraper = require('../scrapers/espnbet');
 const { runHighFrequencyCycle } = require('./hfTracker');
@@ -73,7 +72,7 @@ async function initializeBrowsers() {
       })
     );
   }
-
+/*
   if (enabledBooks.includes('fanduel')) {
     browserPromises.push(
       puppeteer.launch({
@@ -88,6 +87,7 @@ async function initializeBrowsers() {
       })
     );
   }
+    */
 
   if (enabledBooks.includes('betmgm')) {
     browserPromises.push(

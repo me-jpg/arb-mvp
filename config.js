@@ -14,7 +14,6 @@ module.exports = {
   // Book URLs (for reference)
   books: {
     draftkings: 'https://sportsbook.draftkings.com/leagues/football/nfl',
-    fanduel: 'https://sportsbook.fanduel.com/football/nfl',
     betmgm: 'https://sports.betmgm.com/en/sports/football-11/betting/usa-9/nfl-35',
     espnbet: 'https://espnbet.com/sport/american-football/organization/usa/competition/nfl'
   },
@@ -49,7 +48,7 @@ module.exports = {
     intervalMs: parseInt(process.env.HF_INTERVAL_MS || '5000'), // 5 seconds
     maxEvents: parseInt(process.env.HF_MAX_EVENTS || '8'), // Track top 8 games
     markets: ['moneyline', 'spread', 'total'], // Which markets to track
-    books: ['draftkings', 'fanduel', 'betmgm', 'espnbet'] // Which books to track
+    books: ['draftkings', 'betmgm', 'espnbet'] // Which books to track
   },
   
   // Phase 3: Latency & stale line analytics

@@ -16,6 +16,8 @@
     "googleapis": "^166.0.0",
     "pg": "^8.16.3",
     "puppeteer": "^24.31.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "ws": "^8.18.0"
   }
 }

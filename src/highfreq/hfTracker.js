@@ -30,7 +30,7 @@ async function runHighFrequencyCycle({ scrapers, db, logger }) {
 
     const bookStart = Date.now();
     try {
-      const records = await lightweightScrape(scraper, maxGames);
+      const records = await lightweightScrape(scraper, bookName, maxGames);
       const durationMs = Date.now() - bookStart;
 
       if (records.length === 0) {

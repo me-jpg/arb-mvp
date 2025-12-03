@@ -8,9 +8,11 @@ const Helpers = require('../utils/helpers');
 
 class ESPNBetScraper {
   constructor(browser = null) {
-    this.browser = browser;
-    this.ownsBrowser = false;
-  }
+  this.browser = browser;
+  this.name = 'espnbet'; // ← ADD THIS LINE
+  this.url = 'https://espnbet.com/sport/american-football/organization/usa/competition/nfl';
+  this.ownsBrowser = false;
+}
 
   async scrape() {
     // Create browser if not provided
