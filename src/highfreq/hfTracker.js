@@ -1,15 +1,16 @@
 // src/highfreq/hfTracker.js
-// OPTIMIZED: Parallel scraping for faster cycle times
+// ENHANCED: Arbitrage detection integrated with high-frequency tracking
 
 const { lightweightScrape } = require('./lightweightScraper');
 const { detectChanges } = require('./changeDetector');
+const { findArbitrageOpportunities } = require('../utils/arbitrageMatcher');
 const oddsCache = require('./oddsCache');
 const config = require('../../config');
 const wsServer = require('../websocket/ws-server');
 
 /**
  * Run one high-frequency cycle
- * Scrapes subset of games, detects changes, persists to DB
+ * Scrapes subset of games, detects changes, finds arbitrage, persists to DB
  */
 async function runHighFrequencyCycle({ scrapers, db, logger }) {
   const cycleStart = Date.now();
@@ -73,8 +74,21 @@ async function runHighFrequencyCycle({ scrapers, db, logger }) {
     };
   });
 
-  // Detect changes
+  // ✅ NEW: Find arbitrage opportunities
+  const arbitrageOpportunities = findArbitrageOpportunities(
+    allOddsRecords, 
+    config.totalStake || 1000
+  );
+
+  // Detect line changes
   const changes = detectChanges(allOddsRecords, oddsCache);
+
+  // Broadcast arbitrage opportunities
+  if (arbitrageOpportunities.length > 0) {
+    arbitrageOpportunities.forEach(opp => {
+      wsServer.sendMessage('arbitrage_opportunity', opp);
+    });
+  }
 
   // Broadcast line changes
   if (changes.length > 0) {
@@ -83,17 +97,30 @@ async function runHighFrequencyCycle({ scrapers, db, logger }) {
     });
   }
 
-  // Persist changes to database
-  if (changes.length > 0 && db && db.connected) {
+  // Persist to database
+  if (db && db.connected) {
     try {
-      await db.insertLineChanges(changes);
-      
-      // Also log to JSONL
-      changes.forEach(change => {
-        logger.logLineChange(change);
-      });
+      // Insert line changes
+      if (changes.length > 0) {
+        await db.insertLineChanges(changes);
+        
+        // Also log to JSONL
+        changes.forEach(change => {
+          logger.logLineChange(change);
+        });
+      }
+
+      // Insert arbitrage opportunities
+      if (arbitrageOpportunities.length > 0) {
+        await db.insertArbitrageOpportunities(arbitrageOpportunities);
+        
+        // Log to JSONL
+        arbitrageOpportunities.forEach(opp => {
+          logger.logArbitrageOpportunity(opp);
+        });
+      }
     } catch (error) {
-      console.error('   ❌ Failed to persist line changes:', error.message);
+      console.error('   ❌ Failed to persist data:', error.message);
     }
   }
 
@@ -103,8 +130,10 @@ async function runHighFrequencyCycle({ scrapers, db, logger }) {
     cycleTime: cycleDuration,
     oddsChecked: allOddsRecords.length,
     changesDetected: changes.length,
+    arbitrageFound: arbitrageOpportunities.length,
     cacheSize: oddsCache.size(),
-    bookResults
+    bookResults,
+    topArbitrage: arbitrageOpportunities[0] || null
   };
 }
 

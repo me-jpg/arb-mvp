@@ -1,57 +1,24 @@
-import { create } from 'zustand'
+// dashboard/src/store.js
+import { create } from 'zustand';
 
-export const useStore = create((set, get) => ({
-  // Connection state
-  connected: false,
-  lastPing: null,
-  
-  // Line changes feed
+export const useStore = create((set) => ({
   lineChanges: [],
-  maxChanges: 100,
-  
-  // Latency metrics
-  latencyMetrics: {},
-  
-  // Stats
-  stats: {
-    totalChanges: 0,
-    cycleCount: 0,
-    uptime: 0
-  },
-  
-  // Actions
-  setConnected: (connected) => set({ connected }),
-  
-  setLastPing: (timestamp) => set({ lastPing: timestamp }),
-  
-  addLineChange: (change) => set((state) => {
-    const newChanges = [change, ...state.lineChanges].slice(0, state.maxChanges)
-    return { 
-      lineChanges: newChanges,
-      stats: {
-        ...state.stats,
-        totalChanges: state.stats.totalChanges + 1
-      }
-    }
-  }),
-  
-  setLatencyMetrics: (metrics) => set({ latencyMetrics: metrics }),
-  
-  updateStats: (newStats) => set((state) => ({
-    stats: { ...state.stats, ...newStats }
+  latencyMetrics: [],
+  arbitrageOpportunities: [],
+  wsConnected: false,
+
+  addLineChange: (change) => set((state) => ({
+    lineChanges: [{ ...change, timestamp: Date.now() }, ...state.lineChanges].slice(0, 50)
   })),
-  
-  clearLineChanges: () => set({ lineChanges: [] }),
-  
-  // Computed getters
-  getBookLatency: (book) => {
-    const metrics = get().latencyMetrics
-    return metrics[book] || null
-  },
-  
-  getRecentChanges: (count = 10) => {
-    return get().lineChanges.slice(0, count)
-  }
-}))
 
+  setLatencyMetrics: (metrics) => set({ latencyMetrics: metrics }),
 
+  addArbitrageOpportunity: (opp) => set((state) => ({
+    arbitrageOpportunities: [
+      { ...opp, timestamp: Date.now() }, 
+      ...state.arbitrageOpportunities
+    ].slice(0, 20) // Keep last 20
+  })),
+
+  setWsConnected: (connected) => set({ wsConnected: connected })
+}));

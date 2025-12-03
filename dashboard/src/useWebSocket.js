@@ -1,109 +1,60 @@
-import { useEffect, useRef, useCallback } from 'react'
-import { useStore } from './store'
+// dashboard/src/useWebSocket.js
+import { useEffect } from 'react';
+import { useStore } from './store';
 
-const WS_URL = `ws://localhost:${import.meta.env.VITE_WS_PORT || 8787}`
-const RECONNECT_DELAY = 3000
+export default function useWebSocket() {
+  const addLineChange = useStore(state => state.addLineChange);
+  const setLatencyMetrics = useStore(state => state.setLatencyMetrics);
+  const addArbitrageOpportunity = useStore(state => state.addArbitrageOpportunity);
+  const setWsConnected = useStore(state => state.setWsConnected);
 
-export function useWebSocket() {
-  const wsRef = useRef(null)
-  const reconnectTimeoutRef = useRef(null)
-  
-  const { 
-    setConnected, 
-    setLastPing, 
-    addLineChange, 
-    setLatencyMetrics,
-    updateStats 
-  } = useStore()
-  
-  const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return
-    
-    console.log('🔌 Connecting to WebSocket...', WS_URL)
-    
-    const ws = new WebSocket(WS_URL)
-    wsRef.current = ws
-    
-    ws.onopen = () => {
-      console.log('✅ WebSocket connected')
-      setConnected(true)
-      setLastPing(Date.now())
-    }
-    
-    ws.onclose = () => {
-      console.log('❌ WebSocket disconnected')
-      setConnected(false)
-      
-      // Auto-reconnect
-      reconnectTimeoutRef.current = setTimeout(() => {
-        console.log('🔄 Attempting reconnect...')
-        connect()
-      }, RECONNECT_DELAY)
-    }
-    
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error)
-    }
-    
-    ws.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data)
-        handleMessage(message)
-      } catch (err) {
-        console.error('Failed to parse message:', err)
-      }
-    }
-  }, [setConnected, setLastPing])
-  
-  const handleMessage = useCallback((message) => {
-    switch (message.type) {
-      case 'ping':
-        setLastPing(Date.now())
-        break
-        
-      case 'line_change':
-        addLineChange({
-          ...message.data,
-          receivedAt: Date.now()
-        })
-        break
-        
-      case 'latency_update':
-        setLatencyMetrics(message.data)
-        break
-        
-      case 'stats_update':
-        updateStats(message.data)
-        break
-        
-      case 'welcome':
-        console.log('📡 Server:', message.message)
-        break
-        
-      default:
-        console.log('Unknown message type:', message.type)
-    }
-  }, [setLastPing, addLineChange, setLatencyMetrics, updateStats])
-  
-  const disconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current)
-    }
-    if (wsRef.current) {
-      wsRef.current.close()
-      wsRef.current = null
-    }
-  }, [])
-  
   useEffect(() => {
-    connect()
-    return () => disconnect()
-  }, [connect, disconnect])
-  
-  return {
-    connected: useStore((s) => s.connected),
-    reconnect: connect
-  }
+    let ws;
+    let reconnectTimeout;
+
+    const connect = () => {
+      ws = new WebSocket('ws://localhost:8787');
+
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        setWsConnected(true);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+
+          if (message.type === 'line_change') {
+            addLineChange(message.data);
+          } else if (message.type === 'latency_metric') {
+            setLatencyMetrics(prevMetrics => {
+              const filtered = prevMetrics.filter(m => m.book !== message.data.book);
+              return [...filtered, message.data];
+            });
+          } else if (message.type === 'arbitrage_opportunity') {
+            addArbitrageOpportunity(message.data);
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket disconnected');
+        setWsConnected(false);
+        reconnectTimeout = setTimeout(connect, 3000);
+      };
+    };
+
+    connect();
+
+    return () => {
+      if (ws) ws.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    };
+  }, [addLineChange, setLatencyMetrics, addArbitrageOpportunity, setWsConnected]);
 }
-
-

@@ -1,254 +1,222 @@
 // src/utils/db.js
-// PostgreSQL database connection and operations
-
 const { Pool } = require('pg');
 const config = require('../../config');
 
-class Database {
-  constructor() {
-    this.pool = null;
-    this.connected = false;
+let pool = null;
+
+/**
+ * Connect to PostgreSQL database
+ */
+async function connect() {
+  if (pool) {
+    console.log('⚠️  Database already connected');
+    return;
   }
 
-  /**
-   * Initialize database connection
-   */
-  async connect() {
-    if (!config.database.enabled) {
-      console.log('ℹ️  Database disabled in config');
-      return false;
-    }
-
-    try {
-      this.pool = new Pool({
-        host: config.database.host,
-        port: config.database.port,
-        user: config.database.user,
-        password: config.database.password,
-        database: config.database.name,
-        max: 10,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000,
-      });
-
-      // Test connection
-      const client = await this.pool.connect();
-      await client.query('SELECT NOW()');
-      client.release();
-
-      this.connected = true;
-      console.log('✅ Database connected');
-      return true;
-    } catch (error) {
-      console.error('❌ Database connection failed:', error.message);
-      this.connected = false;
-      return false;
-    }
+  if (!config.database?.enabled) {
+    console.log('⚠️  Database disabled in config');
+    return;
   }
 
-  /**
-   * Upsert event
-   */
-  async upsertEvent(event) {
-    if (!this.connected) return;
+  try {
+    pool = new Pool({
+      host: config.database.host,
+      port: config.database.port,
+      user: config.database.user,
+      password: config.database.password,
+      database: config.database.name
+    });
 
-    try {
-      const query = `
-        INSERT INTO events (event_id, sport, home_team, away_team, start_time)
-        VALUES ($1, $2, $3, $4, $5)
-        ON CONFLICT (event_id) 
-        DO UPDATE SET 
-          start_time = EXCLUDED.start_time,
-          updated_at = CURRENT_TIMESTAMP
-      `;
-
-      await this.pool.query(query, [
-        event.eventId,
-        event.sport || 'NFL',
-        event.homeTeam,
-        event.awayTeam,
-        event.startTime || null
-      ]);
-    } catch (error) {
-      console.error(`DB Error upserting event ${event.eventId}:`, error.message);
-    }
-  }
-
-  /**
-   * Bulk upsert events
-   */
-  async upsertEvents(events) {
-    if (!this.connected || !events.length) return;
-
-    const client = await this.pool.connect();
-    try {
-      await client.query('BEGIN');
-
-      for (const event of events) {
-        const query = `
-          INSERT INTO events (event_id, sport, home_team, away_team, start_time)
-          VALUES ($1, $2, $3, $4, $5)
-          ON CONFLICT (event_id) 
-          DO UPDATE SET 
-            start_time = EXCLUDED.start_time,
-            updated_at = CURRENT_TIMESTAMP
-        `;
-
-        await client.query(query, [
-          event.eventId,
-          event.sport || 'NFL',
-          event.homeTeam,
-          event.awayTeam,
-          event.startTime || null
-        ]);
-      }
-
-      await client.query('COMMIT');
-    } catch (error) {
-      await client.query('ROLLBACK');
-      console.error('DB Error bulk upserting events:', error.message);
-    } finally {
-      client.release();
-    }
-  }
-
-  /**
-   * Bulk insert odds snapshots
-   */
-  async insertOddsSnapshots(snapshots) {
-    if (!this.connected || !snapshots.length) return;
-
-    const client = await this.pool.connect();
-    try {
-      // Build bulk insert
-      const values = [];
-      const params = [];
-      let paramCount = 1;
-
-      for (const snapshot of snapshots) {
-        values.push(
-          `($${paramCount}, $${paramCount + 1}, $${paramCount + 2}, $${paramCount + 3}, $${paramCount + 4}, $${paramCount + 5})`
-        );
-        params.push(
-          snapshot.eventId,
-          snapshot.book,
-          snapshot.marketType,
-          snapshot.line,
-          snapshot.side,
-          snapshot.price
-        );
-        paramCount += 6;
-      }
-
-      const query = `
-        INSERT INTO odds_snapshots (event_id, book, market_type, line, side, price)
-        VALUES ${values.join(', ')}
-      `;
-
-      await client.query(query, params);
-    } catch (error) {
-      console.error('DB Error inserting odds snapshots:', error.message);
-    } finally {
-      client.release();
-    }
-  }
-
-  /**
-   * Bulk insert edges
-   */
-  async insertEdges(edges) {
-    if (!this.connected || !edges.length) return;
-
-    const client = await this.pool.connect();
-    try {
-      // Build bulk insert
-      const values = [];
-      const params = [];
-      let paramCount = 1;
-
-      for (const edge of edges) {
-        values.push(
-          `($${paramCount}, $${paramCount + 1}, $${paramCount + 2}, $${paramCount + 3}, $${paramCount + 4}, $${paramCount + 5}, $${paramCount + 6})`
-        );
-        params.push(
-          edge.eventId,
-          edge.marketType,
-          edge.line,
-          edge.bookA,
-          edge.bookB,
-          edge.edgePercent,
-          edge.isArbitrage
-        );
-        paramCount += 7;
-      }
-
-      const query = `
-        INSERT INTO edges (event_id, market_type, line, book_a, book_b, edge_percent, is_arbitrage)
-        VALUES ${values.join(', ')}
-      `;
-
-      await client.query(query, params);
-    } catch (error) {
-      console.error('DB Error inserting edges:', error.message);
-    } finally {
-      client.release();
-    }
-  }
-
-  /**
-   * Bulk insert line changes
-   */
-  async insertLineChanges(changes) {
-    if (!this.connected || !changes.length) return;
-
-    const client = await this.pool.connect();
-    try {
-      // Build bulk insert
-      const values = [];
-      const params = [];
-      let paramCount = 1;
-
-      for (const change of changes) {
-        values.push(
-          `($${paramCount}, $${paramCount + 1}, $${paramCount + 2}, $${paramCount + 3}, $${paramCount + 4}, $${paramCount + 5}, $${paramCount + 6}, $${paramCount + 7}, $${paramCount + 8})`
-        );
-        params.push(
-          change.eventId,
-          change.book,
-          change.marketType,
-          change.side,
-          change.oldLine || null,
-          change.newLine || null,
-          change.oldPrice,
-          change.newPrice,
-          change.changeType
-        );
-        paramCount += 9;
-      }
-
-      const query = `
-        INSERT INTO line_changes (event_id, book, market_type, side, old_line, new_line, old_price, new_price, change_type)
-        VALUES ${values.join(', ')}
-      `;
-
-      await client.query(query, params);
-    } catch (error) {
-      console.error('DB Error inserting line changes:', error.message);
-    } finally {
-      client.release();
-    }
-  }
-
-  /**
-   * Close database connection
-   */
-  async close() {
-    if (this.pool) {
-      await this.pool.end();
-      this.connected = false;
-      console.log('✅ Database connection closed');
-    }
+    // Test connection
+    await pool.query('SELECT NOW()');
+    console.log('✅ Database connected');
+  } catch (error) {
+    console.error('❌ Database connection failed:', error.message);
+    pool = null;
+    throw error;
   }
 }
 
-module.exports = new Database();
+/**
+ * Close database connection
+ */
+async function close() {
+  if (pool) {
+    await pool.end();
+    pool = null;
+    console.log('✅ Database connection closed');
+  }
+}
+
+/**
+ * Insert odds snapshots
+ */
+async function insertOddsSnapshots(snapshots) {
+  if (!pool) {
+    throw new Error('Database not connected');
+  }
+
+  if (!Array.isArray(snapshots) || snapshots.length === 0) {
+    return;
+  }
+
+  try {
+    const values = [];
+    const placeholders = [];
+    
+    snapshots.forEach((snapshot, idx) => {
+      const offset = idx * 8;
+      placeholders.push(
+        `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8})`
+      );
+      
+      values.push(
+        snapshot.eventId,
+        snapshot.book,
+        snapshot.marketType,
+        snapshot.side,
+        snapshot.line || null,
+        snapshot.price,
+        snapshot.scrapedAt,
+        snapshot.detectedAt || new Date()
+      );
+    });
+
+    const query = `
+      INSERT INTO odds_snapshots (event_id, book, market_type, side, line, price, scraped_at, detected_at)
+      VALUES ${placeholders.join(', ')}
+    `;
+
+    await pool.query(query, values);
+  } catch (error) {
+    console.error('Error inserting odds snapshots:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Insert line changes
+ */
+async function insertLineChanges(changes) {
+  if (!pool) {
+    throw new Error('Database not connected');
+  }
+
+  if (!Array.isArray(changes) || changes.length === 0) {
+    return;
+  }
+
+  try {
+    const values = [];
+    const placeholders = [];
+    
+    changes.forEach((change, idx) => {
+      const offset = idx * 10;
+      placeholders.push(
+        `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10})`
+      );
+      
+      values.push(
+        change.eventId,
+        change.book,
+        change.marketType,
+        change.side,
+        change.oldLine || null,
+        change.line || null,
+        change.oldPrice,
+        change.price,
+        change.changeType,
+        change.detectedAt || new Date()
+      );
+    });
+
+    const query = `
+      INSERT INTO line_changes (event_id, book, market_type, side, old_line, new_line, old_price, new_price, change_type, detected_at)
+      VALUES ${placeholders.join(', ')}
+    `;
+
+    await pool.query(query, values);
+  } catch (error) {
+    console.error('Error inserting line changes:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Insert arbitrage opportunities
+ */
+async function insertArbitrageOpportunities(opportunities) {
+  if (!pool) {
+    throw new Error('Database not connected');
+  }
+
+  if (!Array.isArray(opportunities) || opportunities.length === 0) {
+    return;
+  }
+
+  try {
+    const values = [];
+    const placeholders = [];
+    
+    opportunities.forEach((opp, idx) => {
+      const offset = idx * 14;
+      placeholders.push(
+        `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11}, $${offset + 12}, $${offset + 13}, $${offset + 14})`
+      );
+      
+      values.push(
+        opp.eventId,
+        opp.marketType,
+        opp.profitMargin,
+        opp.totalStake,
+        opp.expectedProfit,
+        opp.bookA,
+        opp.bookB,
+        opp.sideA,
+        opp.sideB,
+        opp.priceA,
+        opp.priceB,
+        opp.lineA || null,
+        opp.lineB || null,
+        opp.stakeA,
+        opp.stakeB
+      );
+    });
+
+    const query = `
+      INSERT INTO arbitrage_opportunities (
+        event_id, market_type, profit_margin, total_stake, expected_profit,
+        book_a, book_b, side_a, side_b, price_a, price_b,
+        line_a, line_b, stake_a, stake_b
+      ) VALUES ${placeholders.join(', ')}
+    `;
+
+    await pool.query(query, values);
+  } catch (error) {
+    console.error('Error inserting arbitrage opportunities:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Execute a raw SQL query
+ */
+async function query(sql, params = []) {
+  if (!pool) {
+    throw new Error('Database not connected');
+  }
+
+  return pool.query(sql, params);
+}
+
+module.exports = {
+  connect,
+  close,
+  insertOddsSnapshots,
+  insertLineChanges,
+  insertArbitrageOpportunities,
+  query,
+  get connected() {
+    return pool !== null;
+  }
+};

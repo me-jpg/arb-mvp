@@ -1,93 +1,64 @@
-import { useWebSocket } from './useWebSocket'
-import { useStore } from './store'
-import ConnectionStatus from './components/ConnectionStatus'
-import LatencyPanel from './components/LatencyPanel'
-import LineChangeFeed from './components/LineChangeFeed'
+// dashboard/src/App.jsx
+import ConnectionStatus from './components/ConnectionStatus';
+import LineChangeFeed from './components/LineChangeFeed';
+import LatencyPanel from './components/LatencyPanel';
+import ArbitrageFeed from './components/ArbitrageFeed';
+import useWebSocket from './useWebSocket';
 
 function App() {
-  useWebSocket()
-  const { stats, lineChanges } = useStore()
-  
+  useWebSocket();
+
   return (
-    <div className="min-h-screen bg-midnight p-6">
+    <div className="min-h-screen bg-slate-900 p-6">
       {/* Header */}
-      <header className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold font-display gradient-text">
-              ⚡ ARB Dashboard
-            </h1>
-            <p className="text-zinc-500 mt-1">
-              Real-time arbitrage monitoring
-            </p>
-          </div>
-          <ConnectionStatus />
-        </div>
-        
-        {/* Quick Stats Bar */}
-        <div className="mt-6 grid grid-cols-4 gap-4">
-          <StatCard 
-            label="Total Changes" 
-            value={stats.totalChanges} 
-            icon="🔄"
-          />
-          <StatCard 
-            label="Active Lines" 
-            value={lineChanges.length} 
-            icon="📊"
-          />
-          <StatCard 
-            label="Cycles" 
-            value={stats.cycleCount} 
-            icon="⚡"
-          />
-          <StatCard 
-            label="Uptime" 
-            value={formatUptime(stats.uptime)} 
-            icon="⏱️"
-          />
-        </div>
-      </header>
-      
-      {/* Main Grid */}
-      <div className="grid grid-cols-12 gap-6">
-        {/* Latency Panel - Left */}
-        <div className="col-span-4">
-          <LatencyPanel />
-        </div>
-        
-        {/* Line Change Feed - Right */}
-        <div className="col-span-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-white">ARB-MVP Dashboard</h1>
+        <ConnectionStatus />
+      </div>
+
+      {/* Main Grid - 3 columns */}
+      <div className="grid grid-cols-3 gap-6 h-[calc(100vh-120px)]">
+        {/* Left Column - Line Changes */}
+        <div className="col-span-1">
           <LineChangeFeed />
         </div>
+
+        {/* Middle Column - Arbitrage Opportunities */}
+        <div className="col-span-1">
+          <ArbitrageFeed />
+        </div>
+
+        {/* Right Column - Stats */}
+        <div className="col-span-1 flex flex-col gap-6">
+          <div className="flex-1">
+            <LatencyPanel />
+          </div>
+          <div className="flex-1 bg-slate-800 rounded-lg p-6">
+            <h2 className="text-xl font-bold text-white mb-4">📊 System Stats</h2>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Status</span>
+                <span className="text-green-400 font-semibold">Running</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Books Active</span>
+                <span className="text-white font-semibold">3</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Markets Tracked</span>
+                <span className="text-white font-semibold">ML, Spread, Total</span>
+              </div>
+              <div className="pt-3 border-t border-slate-700">
+                <div className="text-slate-500 text-xs">
+                  Real-time arbitrage detection active
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  )
+  );
 }
 
-function StatCard({ label, value, icon }) {
-  return (
-    <div className="panel flex items-center gap-3">
-      <span className="text-2xl">{icon}</span>
-      <div>
-        <div className="text-2xl font-bold mono text-white">{value}</div>
-        <div className="text-xs text-zinc-500 uppercase tracking-wide">{label}</div>
-      </div>
-    </div>
-  )
-}
-
-function formatUptime(ms) {
-  if (!ms) return '0s'
-  const seconds = Math.floor(ms / 1000)
-  const minutes = Math.floor(seconds / 60)
-  const hours = Math.floor(minutes / 60)
-  
-  if (hours > 0) return `${hours}h ${minutes % 60}m`
-  if (minutes > 0) return `${minutes}m ${seconds % 60}s`
-  return `${seconds}s`
-}
-
-export default App
-
-
+export default App;

@@ -1,5 +1,5 @@
 // src/highfreq/run-hf-tracker.js
-// ENHANCED: Better stats, parallel scraping, improved shutdown, AUTO-RESTART
+// ENHANCED: Better stats, parallel scraping, improved shutdown, AUTO-RESTART, ARBITRAGE DISPLAY
 
 require('dotenv').config();
 const puppeteer = require('puppeteer');
@@ -16,7 +16,6 @@ const wsServer = require('../websocket/ws-server');
 // Browser instances (shared across cycles)
 const browsers = {
   draftkings: null,
-  fanduel: null,
   betmgm: null,
   espnbet: null
 };
@@ -27,6 +26,7 @@ const scrapers = {};
 // Stats tracking
 let cycleCount = 0;
 let totalChanges = 0;
+let totalArbitrage = 0;
 let totalOdds = 0;
 let startTime = Date.now();
 let isRunning = false;
@@ -72,22 +72,6 @@ async function initializeBrowsers() {
       })
     );
   }
-/*
-  if (enabledBooks.includes('fanduel')) {
-    browserPromises.push(
-      puppeteer.launch({
-        headless: true,
-        args: BROWSER_LAUNCH_ARGS
-      }).then(browser => {
-        browsers.fanduel = browser;
-        scrapers.fanduel = new FanDuelScraper(browser);
-        console.log('  ✅ FanDuel browser ready');
-      }).catch(err => {
-        console.error('  ❌ FanDuel browser failed:', err.message);
-      })
-    );
-  }
-    */
 
   if (enabledBooks.includes('betmgm')) {
     browserPromises.push(
@@ -159,12 +143,14 @@ async function restartBrowsers() {
 
 async function initialize() {
   console.log('\n' + '='.repeat(60));
-  console.log('⚡ HIGH-FREQUENCY LINE TRACKER');
+  console.log('⚡ HIGH-FREQUENCY ARBITRAGE TRACKER');
   console.log('='.repeat(60));
   console.log(`📊 Interval: ${config.highFrequency.intervalMs}ms (${config.highFrequency.intervalMs / 1000}s)`);
   console.log(`🎯 Max Events: ${config.highFrequency.maxEvents}`);
   console.log(`📈 Markets: ${config.highFrequency.markets.join(', ')}`);
   console.log(`📚 Books: ${config.highFrequency.books.join(', ')}`);
+  console.log(`💰 Min Profit: ${config.minProfitMargin}%`);
+  console.log(`💵 Total Stake: $${config.totalStake || 1000}`);
   console.log(`🔄 Browser restart: Every ${MAX_CYCLES_BEFORE_RESTART} cycles`);
   console.log('='.repeat(60));
   console.log();
@@ -176,13 +162,13 @@ async function initialize() {
   if (config.database?.enabled) {
     await db.connect();
   } else {
-    console.log('⚠️  Database disabled - changes will only log to file');
+    console.log('⚠️  Database disabled - data will only log to files');
   }
 
   // Initialize WebSocket server for dashboard
   wsServer.initialize();
 
-  console.log('\n⚡ High-frequency tracking started...\n');
+  console.log('\n⚡ High-frequency arbitrage tracking started...\n');
 }
 
 async function runLoop() {
@@ -209,11 +195,13 @@ async function runLoop() {
 
       // Update totals
       totalChanges += stats.changesDetected;
+      totalArbitrage += stats.arbitrageFound;
       totalOdds += stats.oddsChecked;
 
       // Print stats
       console.log(`📊 Odds checked: ${stats.oddsChecked}`);
       console.log(`🔄 Changes detected: ${stats.changesDetected}`);
+      console.log(`💰 Arbitrage found: ${stats.arbitrageFound}`);
       console.log(`💾 Cache size: ${stats.cacheSize}`);
 
       // Print book-specific results (sorted by duration)
@@ -226,9 +214,22 @@ async function runLoop() {
         console.log(`   ${icon} ${book}: ${result.records} records (${time})`);
       });
 
+      // Print arbitrage opportunities if found
+      if (stats.arbitrageFound > 0) {
+        console.log(`\n💰 ARBITRAGE OPPORTUNITIES FOUND: ${stats.arbitrageFound}`);
+        if (stats.topArbitrage) {
+          const opp = stats.topArbitrage;
+          console.log(`   🥇 Best: ${opp.profitMargin}% profit on ${opp.marketType}`);
+          console.log(`      Event: ${opp.eventId}`);
+          console.log(`      ${opp.bookA} ${opp.sideA} ${opp.lineA || ''} ${opp.priceA > 0 ? '+' : ''}${opp.priceA} (stake: $${opp.stakeA})`);
+          console.log(`      ${opp.bookB} ${opp.sideB} ${opp.lineB || ''} ${opp.priceB > 0 ? '+' : ''}${opp.priceB} (stake: $${opp.stakeB})`);
+          console.log(`      💵 Expected profit: $${opp.expectedProfit} on $${opp.totalStake} stake`);
+        }
+      }
+
       // Print changes if any
       if (stats.changesDetected > 0) {
-        console.log('\n🔈 CHANGES:');
+        console.log('\n🔈 RECENT CHANGES:');
         const changes = oddsCache.getRecentChanges(10); // Get last 10
         changes.forEach(change => {
           const line = change.line ? ` [${change.oldLine} → ${change.line}]` : '';
@@ -241,14 +242,15 @@ async function runLoop() {
       }
 
       const cycleDuration = Date.now() - cycleStart;
-      console.log(`⏱️  Cycle time: ${cycleDuration}ms`);
+      console.log(`\n⏱️  Cycle time: ${cycleDuration}ms`);
 
       // Enhanced session stats
       const uptime = Date.now() - startTime;
       const avgChanges = (totalChanges / cycleCount).toFixed(1);
+      const avgArbitrage = (totalArbitrage / cycleCount).toFixed(1);
       const avgCycleTime = Math.round(uptime / cycleCount / 1000);
-      console.log(`📊 Session: ${totalChanges} changes | ${totalOdds} odds | ${cycleCount} cycles | ${formatUptime(uptime)} uptime`);
-      console.log(`📈 Averages: ${avgChanges} changes/cycle | ${avgCycleTime}s/cycle`);
+      console.log(`📊 Session: ${totalArbitrage} arbitrage | ${totalChanges} changes | ${totalOdds} odds | ${cycleCount} cycles | ${formatUptime(uptime)} uptime`);
+      console.log(`📈 Averages: ${avgArbitrage} arb/cycle | ${avgChanges} changes/cycle | ${avgCycleTime}s/cycle`);
 
       // Show next restart countdown
       const cyclesUntilRestart = MAX_CYCLES_BEFORE_RESTART - (cycleCount % MAX_CYCLES_BEFORE_RESTART);
@@ -298,7 +300,13 @@ async function shutdown() {
 
   await closeBrowsers();
 
-  console.log(`📊 Total cycles: ${cycleCount}`);
+  console.log(`\n📊 FINAL SESSION STATS:`);
+  console.log(`   Total cycles: ${cycleCount}`);
+  console.log(`   Total arbitrage found: ${totalArbitrage}`);
+  console.log(`   Total changes detected: ${totalChanges}`);
+  console.log(`   Total odds checked: ${totalOdds}`);
+  console.log(`   Uptime: ${formatUptime(Date.now() - startTime)}`);
+  
   process.exit(0);
 }
 

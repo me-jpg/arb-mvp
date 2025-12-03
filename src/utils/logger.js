@@ -1,103 +1,136 @@
 // src/utils/logger.js
-// Structured logging to JSONL files
-
 const fs = require('fs');
 const path = require('path');
 
-class Logger {
-  constructor() {
-    this.logsDir = path.join(process.cwd(), 'logs');
-    this.ensureLogDirectory();
-  }
+// Log directory
+const LOGS_DIR = path.join(__dirname, '../../logs');
 
-  ensureLogDirectory() {
-    if (!fs.existsSync(this.logsDir)) {
-      fs.mkdirSync(this.logsDir, { recursive: true });
-    }
-  }
+// Log files
+const LINE_CHANGES_LOG = path.join(LOGS_DIR, 'line-changes.jsonl');
+const ARB_OPPORTUNITIES_LOG = path.join(LOGS_DIR, 'arbitrage-opportunities.jsonl');
+const ERRORS_LOG = path.join(LOGS_DIR, 'errors.jsonl');
+const CYCLE_SUMMARY_LOG = path.join(LOGS_DIR, 'cycle-summary.jsonl');
+const SCRAPER_PERFORMANCE_LOG = path.join(LOGS_DIR, 'scraper-performance.jsonl');
 
-  /**
-   * Append JSON line to a JSONL file
-   */
-  appendJsonLine(filename, data) {
-    const filepath = path.join(this.logsDir, filename);
-    const line = JSON.stringify(data) + '\n';
+// Ensure logs directory exists
+if (!fs.existsSync(LOGS_DIR)) {
+  fs.mkdirSync(LOGS_DIR, { recursive: true });
+}
+
+/**
+ * Log line change to JSONL file
+ */
+function logLineChange(change) {
+  try {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      eventId: change.eventId,
+      book: change.book,
+      marketType: change.marketType,
+      side: change.side,
+      oldLine: change.oldLine,
+      newLine: change.line,
+      oldPrice: change.oldPrice,
+      newPrice: change.price,
+      changeType: change.changeType
+    };
     
-    try {
-      fs.appendFileSync(filepath, line, 'utf8');
-    } catch (error) {
-      console.error(`Failed to write to ${filename}:`, error.message);
-    }
-  }
-
-  /**
-   * Log cycle summary
-   */
-  logCycleSummary(cycleData) {
-    this.appendJsonLine('cycle-summary.jsonl', {
-      cycle: cycleData.cycle,
-      timestamp: cycleData.timestamp || new Date().toISOString(),
-      books: cycleData.books,
-      matchedEvents: cycleData.matchedEvents,
-      marketsCompared: cycleData.marketsCompared,
-      edges: cycleData.edges,
-      arbitragesFound: cycleData.arbitragesFound || 0,
-      cycleDurationMs: cycleData.cycleDurationMs
-    });
-  }
-
-  /**
-   * Log scraper performance
-   */
-  logScraperPerformance(scraperData) {
-    this.appendJsonLine('scraper-performance.jsonl', {
-      timestamp: scraperData.timestamp || new Date().toISOString(),
-      cycle: scraperData.cycle,
-      book: scraperData.book,
-      startTime: scraperData.startTime,
-      endTime: scraperData.endTime,
-      durationMs: scraperData.durationMs,
-      games: scraperData.games,
-      markets: scraperData.markets,
-      success: scraperData.success,
-      retryCount: scraperData.retryCount || 0,
-      error: scraperData.error || null
-    });
-  }
-
-  /**
-   * Log line change
-   */
-  logLineChange(changeData) {
-    this.appendJsonLine('line-changes.jsonl', {
-      timestamp: changeData.timestamp || new Date().toISOString(),
-      eventId: changeData.eventId,
-      book: changeData.book,
-      marketType: changeData.marketType,
-      side: changeData.side,
-      oldLine: changeData.oldLine,
-      newLine: changeData.newLine,
-      oldPrice: changeData.oldPrice,
-      newPrice: changeData.newPrice,
-      changeType: changeData.changeType
-    });
-  }
-
-  /**
-   * Log error
-   */
-  logError(errorData) {
-    const timestamp = new Date().toISOString();
-    const logLine = `[${timestamp}] [${errorData.book || 'SYSTEM'}] [CYCLE ${errorData.cycle || 'N/A'}] ${errorData.message}\n${errorData.stack || ''}\n\n`;
-    
-    const filepath = path.join(this.logsDir, 'errors.log');
-    
-    try {
-      fs.appendFileSync(filepath, logLine, 'utf8');
-    } catch (error) {
-      console.error('Failed to write error log:', error.message);
-    }
+    const line = JSON.stringify(logEntry) + '\n';
+    fs.appendFileSync(LINE_CHANGES_LOG, line, 'utf8');
+  } catch (error) {
+    console.error('Error logging line change:', error.message);
   }
 }
 
-module.exports = new Logger();
+/**
+ * Log arbitrage opportunity to JSONL file
+ */
+function logArbitrageOpportunity(opportunity) {
+  try {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      eventId: opportunity.eventId,
+      marketType: opportunity.marketType,
+      profitMargin: opportunity.profitMargin,
+      expectedProfit: opportunity.expectedProfit,
+      totalStake: opportunity.totalStake,
+      bookA: opportunity.bookA,
+      bookB: opportunity.bookB,
+      sideA: opportunity.sideA,
+      sideB: opportunity.sideB,
+      priceA: opportunity.priceA,
+      priceB: opportunity.priceB,
+      lineA: opportunity.lineA,
+      lineB: opportunity.lineB,
+      stakeA: opportunity.stakeA,
+      stakeB: opportunity.stakeB
+    };
+    
+    const line = JSON.stringify(logEntry) + '\n';
+    fs.appendFileSync(ARB_OPPORTUNITIES_LOG, line, 'utf8');
+  } catch (error) {
+    console.error('Error logging arbitrage opportunity:', error.message);
+  }
+}
+
+/**
+ * Log error to JSONL file
+ */
+function logError(error, context = '') {
+  try {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      context,
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    };
+    
+    const line = JSON.stringify(logEntry) + '\n';
+    fs.appendFileSync(ERRORS_LOG, line, 'utf8');
+  } catch (err) {
+    console.error('Error logging error:', err.message);
+  }
+}
+
+/**
+ * Log cycle summary to JSONL file
+ */
+function logCycleSummary(summary) {
+  try {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      ...summary
+    };
+    
+    const line = JSON.stringify(logEntry) + '\n';
+    fs.appendFileSync(CYCLE_SUMMARY_LOG, line, 'utf8');
+  } catch (error) {
+    console.error('Error logging cycle summary:', error.message);
+  }
+}
+
+/**
+ * Log scraper performance to JSONL file
+ */
+function logScraperPerformance(performance) {
+  try {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      ...performance
+    };
+    
+    const line = JSON.stringify(logEntry) + '\n';
+    fs.appendFileSync(SCRAPER_PERFORMANCE_LOG, line, 'utf8');
+  } catch (error) {
+    console.error('Error logging scraper performance:', error.message);
+  }
+}
+
+module.exports = {
+  logLineChange,
+  logArbitrageOpportunity,
+  logError,
+  logCycleSummary,
+  logScraperPerformance
+};
