@@ -20,20 +20,28 @@ function generateSignalsFromLatency(latencyMetrics = [], staleLines = [], option
 
   const signals = [];
   
+  // HARDENED: Ensure inputs are arrays (handle null/undefined)
+  const safeLatencyMetrics = Array.isArray(latencyMetrics) ? latencyMetrics : [];
+  const safeStaleLines = Array.isArray(staleLines) ? staleLines : [];
+  
   // Build a speed score map from latency metrics for filtering
   const speedScoreByBook = new Map();
-  for (const metric of latencyMetrics) {
+  for (const metric of safeLatencyMetrics) {
     if (!metric || !metric.book) continue;
     const speedScore = (metric.fractionFirstToMove || 0) - (metric.fractionLastToMove || 0);
     speedScoreByBook.set(metric.book, speedScore);
   }
 
   // Generate signals from stale line events
-  for (const stale of staleLines) {
+  for (const stale of safeStaleLines) {
     if (!stale) continue;
     
     // Filter by minimum stale duration
-    const staleDuration = stale.staleDurationMs || 0;
+    // HARDENED: Treat NaN/undefined/negative as 0
+    let staleDuration = stale.staleDurationMs;
+    if (!Number.isFinite(staleDuration) || staleDuration < 0) {
+      staleDuration = 0;
+    }
     if (staleDuration < minStaleDurationMs) {
       continue;
     }
@@ -53,7 +61,11 @@ function generateSignalsFromLatency(latencyMetrics = [], staleLines = [], option
 
     // Calculate edge estimate
     // Simple heuristic: staleDurationMs / staleThresholdMs, capped at 0.10 (10%)
-    const rawEdge = staleDuration / staleThresholdMs;
+    // HARDENED: Ensure edge is finite and non-negative
+    let rawEdge = staleDuration / staleThresholdMs;
+    if (!Number.isFinite(rawEdge) || rawEdge < 0) {
+      rawEdge = 0;
+    }
     const edgeEstimate = Math.min(rawEdge, 0.10);
 
     // Calculate confidence based on speed score difference

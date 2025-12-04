@@ -32,7 +32,11 @@ function simulateSignals(signals = [], options = {}) {
   const byType = {};
 
   for (const signal of signals) {
-    const edge = signal.edgeEstimate || 0;
+    // HARDENED: Sanitize edge - treat NaN, Infinity, non-numeric as 0
+    let edge = signal.edgeEstimate;
+    if (typeof edge !== 'number' || !Number.isFinite(edge)) {
+      edge = 0;
+    }
     totalEdge += edge;
 
     // Group by type
@@ -45,7 +49,8 @@ function simulateSignals(signals = [], options = {}) {
     byType[type].totalStake += stakePerSignal;
   }
 
-  const avgEdgeEstimate = totalEdge / signalCount;
+  // HARDENED: Avoid division by zero
+  const avgEdgeEstimate = signalCount > 0 ? totalEdge / signalCount : 0;
 
   // Simple expected value model:
   // EV = totalStake * avgEdgeEstimate

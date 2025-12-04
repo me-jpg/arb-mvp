@@ -45,14 +45,23 @@ module.exports = {
   // High-frequency tracking configuration
   highFrequency: {
     enabled: process.env.HF_ENABLED === 'true' || false,
-    intervalMs: parseInt(process.env.HF_INTERVAL_MS || '5000'), // 5 seconds
-    maxEvents: parseInt(process.env.HF_MAX_EVENTS || '12'), // Track top 12 games per book
+    // Interval between cycles - realistically 20s+ with 3 books and Puppeteer
+    // Typical cycle: scraping ~15-18s (parallel), arb engine <10ms, DB <100ms
+    intervalMs: parseInt(process.env.HF_INTERVAL_MS || '20000'), // 20 seconds (realistic default)
+    maxEvents: parseInt(process.env.HF_MAX_EVENTS || '6'), // Track top 6 games per book (reduced for speed)
     markets: ['moneyline', 'spread', 'total'], // Which markets to track
     books: ['draftkings', 'betmgm', 'espnbet'], // Which books to track
     
     // HF-specific arbitrage threshold (separate from Phase 1 minProfitMargin)
     // Set to 0 to see ALL positive edges, or e.g. 0.5 for 0.5% minimum
-    arbitrageMinEdgePercent: parseFloat(process.env.HF_MIN_EDGE_PERCENT || '0.0')
+    arbitrageMinEdgePercent: parseFloat(process.env.HF_MIN_EDGE_PERCENT || '0.0'),
+    
+    // Performance instrumentation
+    debugTimings: process.env.HF_DEBUG_TIMINGS === 'true' || false,
+    
+    // Health monitoring: warn if utilization exceeds this threshold for N consecutive cycles
+    maxUtilizationWarning: parseFloat(process.env.HF_MAX_UTILIZATION || '1.5'), // 150%
+    utilizationWarnCycles: parseInt(process.env.HF_UTIL_WARN_CYCLES || '3')
   },
   
   // Phase 3: Latency & stale line analytics

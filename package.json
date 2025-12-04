@@ -6,12 +6,19 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:latency": "node tests/latency/windowBuilder.test.js && node tests/latency/latencyAnalyzer.test.js && node tests/latency/staleLineDetector.test.js",
+    "test:signals": "node tests/signals/signalGenerator.test.js && node tests/signals/paperTrader.test.js && node tests/signals/arbSignalAdapter.test.js && node tests/signals/strategyEngine.test.js && node tests/signals/strategySweep.test.js",
+    "test:all": "npm run test:latency && npm run test:signals",
     "hf:run": "node src/highfreq/run-hf-tracker.js",
     "latency:once": "node src/latency/run-latency-analyzer.js --once",
     "latency:daemon": "node src/latency/run-latency-analyzer.js --daemon",
     "latency:summary": "node src/latency/print-latency-summary.js",
     "latency:full": "node src/latency/run-latency-analyzer.js --once && node src/latency/print-latency-summary.js",
-    "signals:analyze": "node src/signals/run-signal-analysis.js"
+    "signals:analyze": "node src/signals/run-signal-analysis.js",
+    "signals:summary": "node src/signals/print-signal-summary.js",
+    "signals:strategy": "node src/signals/run-strategy-simulation.js",
+    "signals:sweep": "node src/signals/run-strategy-sweep.js",
+    "metrics:serve": "node src/server/metricsServer.js",
+    "diagnostics:check": "node src/diagnostics/run-system-check.js"
   },
   "keywords": [],
   "author": "",

@@ -31,6 +31,10 @@ let totalOdds = 0;
 let startTime = Date.now();
 let isRunning = false;
 
+// Health monitoring
+let consecutiveOverloadCycles = 0;
+let totalCycleTimeMs = 0;
+
 // Browser restart configuration
 const MAX_CYCLES_BEFORE_RESTART = 50;
 const BROWSER_LAUNCH_ARGS = ['--no-sandbox', '--disable-setuid-sandbox'];
@@ -152,6 +156,9 @@ async function initialize() {
   console.log(`💰 HF Min Edge: ${config.highFrequency.arbitrageMinEdgePercent}% (env: HF_MIN_EDGE_PERCENT)`);
   console.log(`💵 Total Stake: $${config.totalStake || 1000}`);
   console.log(`🔄 Browser restart: Every ${MAX_CYCLES_BEFORE_RESTART} cycles`);
+  if (config.highFrequency.debugTimings) {
+    console.log(`⏱️  Debug timings: ENABLED (HF_DEBUG_TIMINGS=true)`);
+  }
   console.log('='.repeat(60));
   console.log();
 
@@ -242,15 +249,22 @@ async function runLoop() {
       }
 
       const cycleDuration = Date.now() - cycleStart;
-      console.log(`\n⏱️  Cycle time: ${cycleDuration}ms`);
+      totalCycleTimeMs += cycleDuration;
+      
+      // Calculate utilization
+      const utilization = cycleDuration / INTERVAL_MS;
+      const utilizationPct = (utilization * 100).toFixed(1);
+      
+      console.log(`\n⏱️  Cycle time: ${cycleDuration}ms | Utilization: ${utilizationPct}%`);
 
       // Enhanced session stats
       const uptime = Date.now() - startTime;
       const avgChanges = (totalChanges / cycleCount).toFixed(1);
       const avgArbitrage = (totalArbitrage / cycleCount).toFixed(1);
-      const avgCycleTime = Math.round(uptime / cycleCount / 1000);
-      console.log(`📊 Session: ${totalArbitrage} arbitrage | ${totalChanges} changes | ${totalOdds} odds | ${cycleCount} cycles | ${formatUptime(uptime)} uptime`);
-      console.log(`📈 Averages: ${avgArbitrage} arb/cycle | ${avgChanges} changes/cycle | ${avgCycleTime}s/cycle`);
+      const avgCycleTimeMs = Math.round(totalCycleTimeMs / cycleCount);
+      const avgUtilization = ((avgCycleTimeMs / INTERVAL_MS) * 100).toFixed(1);
+      console.log(`📊 Session: ${totalArbitrage} arb | ${totalChanges} changes | ${totalOdds} odds | ${cycleCount} cycles | ${formatUptime(uptime)}`);
+      console.log(`📈 Avg cycle: ${avgCycleTimeMs}ms | Avg util: ${avgUtilization}%`);
 
       // Show next restart countdown
       const cyclesUntilRestart = MAX_CYCLES_BEFORE_RESTART - (cycleCount % MAX_CYCLES_BEFORE_RESTART);
@@ -258,14 +272,34 @@ async function runLoop() {
         console.log(`🔄 Browser restart in ${cyclesUntilRestart} cycles`);
       }
 
-      // Warn if cycle time exceeds interval
-      if (cycleDuration > INTERVAL_MS) {
-        console.log(`⚠️  Cycle took longer than interval (${cycleDuration}ms > ${INTERVAL_MS}ms)`);
+      // Health monitoring: track consecutive overload cycles
+      const maxUtil = config.highFrequency.maxUtilizationWarning || 1.5;
+      const warnCycles = config.highFrequency.utilizationWarnCycles || 3;
+      
+      if (utilization > maxUtil) {
+        consecutiveOverloadCycles++;
+        if (consecutiveOverloadCycles >= warnCycles) {
+          console.log(`\n⚠️  HF OVERLOADED: ${consecutiveOverloadCycles} consecutive cycles > ${(maxUtil * 100).toFixed(0)}% utilization`);
+          console.log(`   Current: ${cycleDuration}ms cycle, ${INTERVAL_MS}ms interval`);
+          console.log(`   Suggestions:`);
+          console.log(`     - Increase HF_INTERVAL_MS (try ${Math.ceil(avgCycleTimeMs / 1000) * 1000 + 2000})`);
+          console.log(`     - Reduce HF_MAX_EVENTS (currently ${config.highFrequency.maxEvents})`);
+          console.log(`     - Limit markets or books`);
+        }
+      } else {
+        consecutiveOverloadCycles = 0;
       }
 
-      // Warn if cycle time is very long
+      // Simple utilization indicator
+      if (utilization > 1.0) {
+        console.log(`⚠️  Over capacity (${utilizationPct}%)`);
+      } else if (utilization > 0.9) {
+        console.log(`🟡 Near capacity (${utilizationPct}%)`);
+      }
+
+      // Warn if cycle time is very long (absolute threshold)
       if (cycleDuration > 30000) {
-        console.log(`⚠️  WARNING: Cycle time exceeded 30s - consider reducing maxEvents or disabling slow books`);
+        console.log(`⚠️  WARNING: Cycle exceeded 30s - consider reducing load`);
       }
 
       // Wait for next cycle
