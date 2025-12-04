@@ -27,10 +27,10 @@ async function detectStaleLinesForRange(db, options = {}) {
   // Simplified query - compute reference_book and filter in JS to avoid O(n²) subquery
   const query = `
     SELECT DISTINCT ON (event_id, market_type, side, book)
-      event_id, market_type, side, book, created_at
+      event_id, market_type, side, book, detected_at
     FROM line_changes
-    WHERE created_at >= $1 AND created_at <= $2
-    ORDER BY event_id, market_type, side, book, created_at DESC
+    WHERE detected_at >= $1 AND detected_at <= $2
+    ORDER BY event_id, market_type, side, book, detected_at DESC
     LIMIT 50000
   `;
   
@@ -42,7 +42,7 @@ async function detectStaleLinesForRange(db, options = {}) {
 
 /**
  * Compute stale lines from query result rows
- * @param {Array} rows - DB rows with event_id, market_type, side, book, created_at
+ * @param {Array} rows - DB rows with event_id, market_type, side, book, detected_at
  * @param {number} staleThresholdMs - Threshold in ms
  * @returns {Array} Stale line events
  */
@@ -61,7 +61,7 @@ function computeStaleLinesFromRows(rows, staleThresholdMs) {
     }
     groups.get(key).push({
       book: row.book,
-      timestamp: new Date(row.created_at).getTime()
+      timestamp: new Date(row.detected_at).getTime()
     });
   }
   
@@ -116,7 +116,7 @@ async function detectStaleLines(db, thresholdMs) {
 
 /**
  * Pure helper: Detect stale lines from an array of changes (for testing)
- * @param {Array} changes - Array of { event_id, market_type, side, book, created_at }
+ * @param {Array} changes - Array of { event_id, market_type, side, book, detected_at }
  * @param {number} staleThresholdMs - Threshold in ms
  * @returns {Array} Stale line events
  */
@@ -135,7 +135,7 @@ function computeStaleLinesFromChanges(changes, staleThresholdMs = 60000) {
     }
     groups.get(key).push({
       ...change,
-      timestamp: new Date(change.created_at).getTime()
+      timestamp: new Date(change.detected_at).getTime()
     });
   }
   

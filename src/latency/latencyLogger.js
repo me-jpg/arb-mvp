@@ -4,6 +4,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { validateLatencyMetric, validateStaleLineEvent } = require('../utils/shapeValidator');
 
 const LOGS_DIR = path.join(process.cwd(), 'logs');
 const LATENCY_LOG = path.join(LOGS_DIR, 'latency-metrics.jsonl');
@@ -56,6 +57,7 @@ function logLatencyMetric(metric) {
   const logEntry = {
     timestamp: new Date().toISOString(),
     book: metric.book,
+    windowCount: metric.windowsWithChange || metric.windowCount || 0,
     totalWindows: metric.totalWindows,
     windowsWithChange: metric.windowsWithChange,
     avgDelayMsVsFastest: metric.avgDelayMsVsFastest,
@@ -63,6 +65,9 @@ function logLatencyMetric(metric) {
     fractionLastToMove: metric.fractionLastToMove,
     marketBreakdown: metric.marketBreakdown || {}
   };
+  
+  // Validate before logging
+  validateLatencyMetric(logEntry, 'latencyLogger:metric');
   
   appendJsonLineAsync(LATENCY_LOG, logEntry);
 }
@@ -86,6 +91,9 @@ function logStaleLine(staleLine) {
     staleStartedAt: staleLine.staleStartedAt,
     staleDetectedAt: staleLine.staleDetectedAt
   };
+  
+  // Validate before logging
+  validateStaleLineEvent(logEntry, 'latencyLogger:staleLine');
   
   appendJsonLineAsync(STALE_LOG, logEntry);
 }

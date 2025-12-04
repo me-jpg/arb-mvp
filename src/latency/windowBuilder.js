@@ -24,10 +24,10 @@ async function buildTimeWindows(db, options = {}) {
   // Always use parameterized queries - no string interpolation
   const query = `
     SELECT event_id, market_type, side, book, old_price, new_price, 
-           old_line, new_line, change_type, created_at
+           old_line, new_line, change_type, detected_at
     FROM line_changes
-    WHERE created_at >= $1 AND created_at <= $2
-    ORDER BY created_at ASC
+    WHERE detected_at >= $1 AND detected_at <= $2
+    ORDER BY detected_at ASC
     LIMIT 50000
   `;
   
@@ -47,7 +47,7 @@ async function buildTimeWindows(db, options = {}) {
  * Each window covers exactly [windowStart, windowStart + windowMs)
  * A new window is created when timestamp >= current windowStart + windowMs
  * 
- * @param {Array} changes - Array of { event_id, market_type, side, book, created_at, ... }
+ * @param {Array} changes - Array of { event_id, market_type, side, book, detected_at, ... }
  * @param {number} windowMs - Window size in ms
  * @returns {Array} Array of window objects
  */
@@ -56,9 +56,9 @@ function buildWindowsFromChanges(changes, windowMs = 30000) {
     return [];
   }
   
-  // Sort by created_at (copy first to avoid mutating input)
+  // Sort by detected_at (copy first to avoid mutating input)
   const sorted = [...changes].sort((a, b) => 
-    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    new Date(a.detected_at).getTime() - new Date(b.detected_at).getTime()
   );
   
   const windows = [];
@@ -67,7 +67,7 @@ function buildWindowsFromChanges(changes, windowMs = 30000) {
   
   for (const change of sorted) {
     const key = `${change.event_id}|${change.market_type}|${change.side || 'home'}`;
-    const timestamp = new Date(change.created_at).getTime();
+    const timestamp = new Date(change.detected_at).getTime();
     
     if (!windowState.has(key)) {
       // First change for this group - start first window

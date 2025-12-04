@@ -1,6 +1,8 @@
 // src/highfreq/changeDetector.js
 // FIXED: Graceful handling of cache misses
 
+const { validateLineChange } = require('../utils/shapeValidator');
+
 /**
  * Classify the type of change
  */
@@ -89,6 +91,8 @@ function detectChanges(oddsRecords, oddsCache) {
     const changeType = classifyChange(oldLine, line, oldPrice, price);
 
     // Create change record
+    // Note: DB uses snake_case (event_id, detected_at), but in-memory uses camelCase
+    // The db.insertLineChanges() maps these fields
     const changeRecord = {
       eventId,
       book,
@@ -99,8 +103,20 @@ function detectChanges(oddsRecords, oddsCache) {
       oldPrice,
       newPrice: price,
       changeType,
-      timestamp: timestamp || Date.now()
+      detected_at: new Date(timestamp || Date.now()).toISOString()
     };
+    
+    // Validate shape before using
+    validateLineChange({
+      event_id: changeRecord.eventId,
+      book: changeRecord.book,
+      market_type: changeRecord.marketType,
+      side: changeRecord.side,
+      old_price: changeRecord.oldPrice,
+      new_price: changeRecord.newPrice,
+      change_type: changeRecord.changeType,
+      detected_at: changeRecord.detected_at
+    }, 'changeDetector:lineChange');
     
     changes.push(changeRecord);
     

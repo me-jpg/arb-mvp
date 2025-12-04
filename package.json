@@ -10,7 +10,8 @@
     "latency:once": "node src/latency/run-latency-analyzer.js --once",
     "latency:daemon": "node src/latency/run-latency-analyzer.js --daemon",
     "latency:summary": "node src/latency/print-latency-summary.js",
-    "latency:full": "node src/latency/run-latency-analyzer.js --once && node src/latency/print-latency-summary.js"
+    "latency:full": "node src/latency/run-latency-analyzer.js --once && node src/latency/print-latency-summary.js",
+    "signals:analyze": "node src/signals/run-signal-analysis.js"
   },
   "keywords": [],
   "author": "",

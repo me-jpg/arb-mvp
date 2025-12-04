@@ -16,9 +16,9 @@ console.log('=== windowBuilder.test.js ===\n');
 // Change at t=15000 starts a NEW window (since 15000 >= 1000 + 10000)
 {
   const changes = [
-    { event_id: 'EVT1', book: 'draftkings', market_type: 'moneyline', side: 'home', created_at: new Date(1000) },
-    { event_id: 'EVT1', book: 'betmgm',     market_type: 'moneyline', side: 'home', created_at: new Date(1500) },
-    { event_id: 'EVT1', book: 'draftkings', market_type: 'moneyline', side: 'home', created_at: new Date(15000) }
+    { event_id: 'EVT1', book: 'draftkings', market_type: 'moneyline', side: 'home', detected_at: new Date(1000) },
+    { event_id: 'EVT1', book: 'betmgm',     market_type: 'moneyline', side: 'home', detected_at: new Date(1500) },
+    { event_id: 'EVT1', book: 'draftkings', market_type: 'moneyline', side: 'home', detected_at: new Date(15000) }
   ];
   
   const windows = buildWindowsFromChanges(changes, 10000);
@@ -44,10 +44,10 @@ console.log('=== windowBuilder.test.js ===\n');
 // Test 2: Multiple events don't mix
 {
   const changes = [
-    { event_id: 'EVT1', book: 'draftkings', market_type: 'moneyline', side: 'home', created_at: new Date(1000) },
-    { event_id: 'EVT2', book: 'draftkings', market_type: 'moneyline', side: 'home', created_at: new Date(1500) },
-    { event_id: 'EVT1', book: 'betmgm',     market_type: 'moneyline', side: 'home', created_at: new Date(2000) },
-    { event_id: 'EVT2', book: 'betmgm',     market_type: 'moneyline', side: 'home', created_at: new Date(2500) }
+    { event_id: 'EVT1', book: 'draftkings', market_type: 'moneyline', side: 'home', detected_at: new Date(1000) },
+    { event_id: 'EVT2', book: 'draftkings', market_type: 'moneyline', side: 'home', detected_at: new Date(1500) },
+    { event_id: 'EVT1', book: 'betmgm',     market_type: 'moneyline', side: 'home', detected_at: new Date(2000) },
+    { event_id: 'EVT2', book: 'betmgm',     market_type: 'moneyline', side: 'home', detected_at: new Date(2500) }
   ];
   
   const windows = buildWindowsFromChanges(changes, 10000);
@@ -68,9 +68,9 @@ console.log('=== windowBuilder.test.js ===\n');
 // Test 3: Different market types don't mix
 {
   const changes = [
-    { event_id: 'EVT1', book: 'draftkings', market_type: 'moneyline', side: 'home', created_at: new Date(1000) },
-    { event_id: 'EVT1', book: 'betmgm',     market_type: 'spread',    side: 'home', created_at: new Date(1500) },
-    { event_id: 'EVT1', book: 'betmgm',     market_type: 'moneyline', side: 'home', created_at: new Date(2000) }
+    { event_id: 'EVT1', book: 'draftkings', market_type: 'moneyline', side: 'home', detected_at: new Date(1000) },
+    { event_id: 'EVT1', book: 'betmgm',     market_type: 'spread',    side: 'home', detected_at: new Date(1500) },
+    { event_id: 'EVT1', book: 'betmgm',     market_type: 'moneyline', side: 'home', detected_at: new Date(2000) }
   ];
   
   const windows = buildWindowsFromChanges(changes, 10000);
@@ -87,9 +87,9 @@ console.log('=== windowBuilder.test.js ===\n');
 // Test 4: Timestamp ordering preserved in changesByBook
 {
   const changes = [
-    { event_id: 'EVT1', book: 'draftkings', market_type: 'moneyline', side: 'home', created_at: new Date(3000) },
-    { event_id: 'EVT1', book: 'draftkings', market_type: 'moneyline', side: 'home', created_at: new Date(1000) },
-    { event_id: 'EVT1', book: 'betmgm',     market_type: 'moneyline', side: 'home', created_at: new Date(2000) }
+    { event_id: 'EVT1', book: 'draftkings', market_type: 'moneyline', side: 'home', detected_at: new Date(3000) },
+    { event_id: 'EVT1', book: 'draftkings', market_type: 'moneyline', side: 'home', detected_at: new Date(1000) },
+    { event_id: 'EVT1', book: 'betmgm',     market_type: 'moneyline', side: 'home', detected_at: new Date(2000) }
   ];
   
   const windows = buildWindowsFromChanges(changes, 10000);
@@ -106,11 +106,11 @@ console.log('=== windowBuilder.test.js ===\n');
 // If windows extended, all changes would be in one giant window
 {
   const changes = [
-    { event_id: 'EVT1', book: 'draftkings', market_type: 'moneyline', side: 'home', created_at: new Date(0) },
-    { event_id: 'EVT1', book: 'betmgm',     market_type: 'moneyline', side: 'home', created_at: new Date(5000) },
+    { event_id: 'EVT1', book: 'draftkings', market_type: 'moneyline', side: 'home', detected_at: new Date(0) },
+    { event_id: 'EVT1', book: 'betmgm',     market_type: 'moneyline', side: 'home', detected_at: new Date(5000) },
     // This should be in window 2 since 12000 >= 0 + 10000
-    { event_id: 'EVT1', book: 'draftkings', market_type: 'moneyline', side: 'home', created_at: new Date(12000) },
-    { event_id: 'EVT1', book: 'betmgm',     market_type: 'moneyline', side: 'home', created_at: new Date(14000) },
+    { event_id: 'EVT1', book: 'draftkings', market_type: 'moneyline', side: 'home', detected_at: new Date(12000) },
+    { event_id: 'EVT1', book: 'betmgm',     market_type: 'moneyline', side: 'home', detected_at: new Date(14000) },
   ];
   
   const windows = buildWindowsFromChanges(changes, 10000);
@@ -125,17 +125,17 @@ console.log('=== windowBuilder.test.js ===\n');
 // Test 6: Input array not mutated
 {
   const originalChanges = [
-    { event_id: 'EVT1', book: 'draftkings', market_type: 'moneyline', side: 'home', created_at: new Date(3000) },
-    { event_id: 'EVT1', book: 'betmgm',     market_type: 'moneyline', side: 'home', created_at: new Date(1000) }
+    { event_id: 'EVT1', book: 'draftkings', market_type: 'moneyline', side: 'home', detected_at: new Date(3000) },
+    { event_id: 'EVT1', book: 'betmgm',     market_type: 'moneyline', side: 'home', detected_at: new Date(1000) }
   ];
   
   // Copy to check mutation
-  const firstTimeBefore = originalChanges[0].created_at.getTime();
+  const firstTimeBefore = originalChanges[0].detected_at.getTime();
   
   buildWindowsFromChanges(originalChanges, 10000);
   
   // First element should still be the same (not sorted in place)
-  assert(originalChanges[0].created_at.getTime() === firstTimeBefore, 'Input array should not be mutated');
+  assert(originalChanges[0].detected_at.getTime() === firstTimeBefore, 'Input array should not be mutated');
   
   console.log('✓ Test 6: Input array not mutated (MEDIUM bug 2.6 fix)');
 }
