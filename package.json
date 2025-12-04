@@ -6,7 +6,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:latency": "node tests/latency/windowBuilder.test.js && node tests/latency/latencyAnalyzer.test.js && node tests/latency/staleLineDetector.test.js",
-    "latency:summary": "node src/latency/print-latency-summary.js"
+    "hf:run": "node src/highfreq/run-hf-tracker.js",
+    "latency:once": "node src/latency/run-latency-analyzer.js --once",
+    "latency:daemon": "node src/latency/run-latency-analyzer.js --daemon",
+    "latency:summary": "node src/latency/print-latency-summary.js",
+    "latency:full": "node src/latency/run-latency-analyzer.js --once && node src/latency/print-latency-summary.js"
   },
   "keywords": [],
   "author": "",

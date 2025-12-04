@@ -1,4 +1,4 @@
-﻿// src/latency/latencyAnalyzer.js
+// src/latency/latencyAnalyzer.js
 // Computes per-book latency metrics from line_changes windows
 
 const { buildTimeWindows } = require('./windowBuilder');
@@ -10,14 +10,39 @@ const { buildTimeWindows } = require('./windowBuilder');
  * @returns {Array} Per-book latency metrics
  */
 async function analyzeLatencyForRange(db, options = {}) {
-  if (!db.connected) {
-    throw new Error('Database not connected');
-  }
-
+  // Don't do racey db.connected check - let query throw and handle in caller
   const windows = await buildTimeWindows(db, options);
   const latencyMetrics = computeLatencyMetrics(windows);
   
   return latencyMetrics;
+}
+
+/**
+ * Find minimum timestamp in array WITHOUT spread operator (avoids stack overflow)
+ */
+function minTimestamp(changes) {
+  if (!changes || changes.length === 0) return Infinity;
+  let min = changes[0].timestamp;
+  for (let i = 1; i < changes.length; i++) {
+    if (changes[i].timestamp < min) {
+      min = changes[i].timestamp;
+    }
+  }
+  return min;
+}
+
+/**
+ * Find maximum timestamp in array WITHOUT spread operator (avoids stack overflow)
+ */
+function maxTimestamp(changes) {
+  if (!changes || changes.length === 0) return -Infinity;
+  let max = changes[0].timestamp;
+  for (let i = 1; i < changes.length; i++) {
+    if (changes[i].timestamp > max) {
+      max = changes[i].timestamp;
+    }
+  }
+  return max;
 }
 
 /**
@@ -32,33 +57,34 @@ function computeLatencyMetrics(windows) {
     return [];
   }
   
-  windows.forEach(window => {
+  for (const window of windows) {
     const { marketType, changesByBook } = window;
     
-    if (!changesByBook) return;
+    if (!changesByBook) continue;
     
     const books = Object.keys(changesByBook);
-    if (books.length < 2) return;
+    if (books.length < 2) continue;
     
     // Find earliest move time across all books in this window
+    // FIXED: Use loop instead of Math.min(...spread) to avoid stack overflow
     let fastestBook = null;
     let fastestTime = Infinity;
     
-    books.forEach(book => {
+    for (const book of books) {
       const bookChanges = changesByBook[book];
       if (bookChanges && bookChanges.length > 0) {
-        const earliestChange = Math.min(...bookChanges.map(c => c.timestamp));
+        const earliestChange = minTimestamp(bookChanges);
         if (earliestChange < fastestTime) {
           fastestTime = earliestChange;
           fastestBook = book;
         }
       }
-    });
+    }
     
-    if (!fastestBook) return;
+    if (!fastestBook) continue;
     
     // Track stats for each book
-    books.forEach(book => {
+    for (const book of books) {
       if (!bookStats[book]) {
         bookStats[book] = {
           book,
@@ -84,7 +110,7 @@ function computeLatencyMetrics(windows) {
       // Calculate delay vs fastest
       const bookChanges = changesByBook[book];
       if (bookChanges && bookChanges.length > 0) {
-        const bookFirstMove = Math.min(...bookChanges.map(c => c.timestamp));
+        const bookFirstMove = minTimestamp(bookChanges);
         const delay = bookFirstMove - fastestTime;
         
         if (delay > 0) {
@@ -104,25 +130,25 @@ function computeLatencyMetrics(windows) {
       if (book === fastestBook) {
         stats.marketBreakdown[marketType].firstMoverCount++;
       }
-    });
+    }
     
-    // Track last mover
+    // Track last mover - FIXED: use loop instead of spread
     let slowestBook = null;
-    let slowestTime = 0;
-    books.forEach(book => {
+    let slowestTime = -Infinity;
+    for (const book of books) {
       const bookChanges = changesByBook[book];
       if (bookChanges && bookChanges.length > 0) {
-        const latestChange = Math.max(...bookChanges.map(c => c.timestamp));
+        const latestChange = maxTimestamp(bookChanges);
         if (latestChange > slowestTime) {
           slowestTime = latestChange;
           slowestBook = book;
         }
       }
-    });
+    }
     if (slowestBook && bookStats[slowestBook]) {
       bookStats[slowestBook].lastMoverCount++;
     }
-  });
+  }
   
   // Compute derived metrics
   return Object.values(bookStats).map(stats => ({
