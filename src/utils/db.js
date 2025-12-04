@@ -122,11 +122,11 @@ async function insertLineChanges(changes) {
         change.marketType,
         change.side,
         change.oldLine || null,
-        change.line || null,
+        change.newLine || null,
         change.oldPrice,
-        change.price,
+        change.newPrice,
         change.changeType,
-        change.detectedAt || new Date()
+        change.timestamp ? new Date(change.timestamp) : new Date()
       );
     });
 

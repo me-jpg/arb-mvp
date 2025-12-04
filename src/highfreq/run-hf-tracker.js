@@ -146,10 +146,10 @@ async function initialize() {
   console.log('⚡ HIGH-FREQUENCY ARBITRAGE TRACKER');
   console.log('='.repeat(60));
   console.log(`📊 Interval: ${config.highFrequency.intervalMs}ms (${config.highFrequency.intervalMs / 1000}s)`);
-  console.log(`🎯 Max Events: ${config.highFrequency.maxEvents}`);
+  console.log(`🎯 Max Events: ${config.highFrequency.maxEvents} per book`);
   console.log(`📈 Markets: ${config.highFrequency.markets.join(', ')}`);
   console.log(`📚 Books: ${config.highFrequency.books.join(', ')}`);
-  console.log(`💰 Min Profit: ${config.minProfitMargin}%`);
+  console.log(`💰 HF Min Edge: ${config.highFrequency.arbitrageMinEdgePercent}% (env: HF_MIN_EDGE_PERCENT)`);
   console.log(`💵 Total Stake: $${config.totalStake || 1000}`);
   console.log(`🔄 Browser restart: Every ${MAX_CYCLES_BEFORE_RESTART} cycles`);
   console.log('='.repeat(60));
@@ -278,7 +278,7 @@ async function runLoop() {
 
     } catch (error) {
       console.error('❌ Cycle error:', error.message);
-      logger.logError(error, 'HF Cycle');
+      logger.logError('HF Cycle', error);
       
       const elapsed = Date.now() - cycleStart;
       const delay = Math.max(0, INTERVAL_MS - elapsed);

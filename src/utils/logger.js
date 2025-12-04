@@ -1,160 +1,113 @@
 // src/utils/logger.js
+// Simple JSONL logger used across the system
+
 const fs = require('fs');
 const path = require('path');
 
-// Log directory
-const LOGS_DIR = path.join(__dirname, '../../logs');
+const LOGS_DIR = path.join(process.cwd(), 'logs');
 
-// Log files
-const LINE_CHANGES_LOG = path.join(LOGS_DIR, 'line-changes.jsonl');
-const ARB_OPPORTUNITIES_LOG = path.join(LOGS_DIR, 'arbitrage-opportunities.jsonl');
-const ERRORS_LOG = path.join(LOGS_DIR, 'errors.jsonl');
-const CYCLE_SUMMARY_LOG = path.join(LOGS_DIR, 'cycle-summary.jsonl');
-const SCRAPER_PERFORMANCE_LOG = path.join(LOGS_DIR, 'scraper-performance.jsonl');
+function ensureLogsDir() {
+  if (!fs.existsSync(LOGS_DIR)) {
+    fs.mkdirSync(LOGS_DIR, { recursive: true });
+  }
+}
 
-// Ensure logs directory exists
-if (!fs.existsSync(LOGS_DIR)) {
-  fs.mkdirSync(LOGS_DIR, { recursive: true });
+function appendJsonLine(filename, payload) {
+  try {
+    ensureLogsDir();
+    const filepath = path.join(LOGS_DIR, filename);
+    const line = JSON.stringify(payload) + '\n';
+    fs.appendFileSync(filepath, line, 'utf8');
+  } catch (err) {
+    // Last-ditch logging to stderr – never throw from logger
+    console.error(`Logger error writing to ${filename}:`, err.message);
+  }
+}
+
+function withTimestamp(data) {
+  return {
+    timestamp: new Date().toISOString(),
+    ...data,
+  };
 }
 
 /**
- * Log line change to JSONL file
+ * Log a single line change event.
+ * Expected shape (flexible):
+ *  {
+ *    eventId,
+ *    book,
+ *    marketType,
+ *    side,
+ *    oldLine,
+ *    newLine,
+ *    oldPrice,
+ *    newPrice,
+ *    changeType
+ *  }
  */
 function logLineChange(change) {
-  try {
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      eventId: change.eventId,
-      book: change.book,
-      marketType: change.marketType,
-      side: change.side,
-      oldLine: change.oldLine,
-      newLine: change.line,
-      oldPrice: change.oldPrice,
-      newPrice: change.price,
-      changeType: change.changeType
-    };
-    
-    const line = JSON.stringify(logEntry) + '\n';
-    fs.appendFileSync(LINE_CHANGES_LOG, line, 'utf8');
-  } catch (error) {
-    console.error('Error logging line change:', error.message);
-  }
-
-  /**
-   * Log arbitrage opportunity
-   */
-  logArbitrage(arbData) {
-    this.appendJsonLine('arbitrage-opportunities.jsonl', {
-      timestamp: arbData.timestamp || new Date().toISOString(),
-      eventId: arbData.eventId,
-      event: arbData.event,
-      marketType: arbData.marketType,
-      line: arbData.line,
-      bookA: arbData.bookA,
-      priceA: arbData.priceA,
-      sideA: arbData.sideA,
-      stakeA: arbData.stakeA,
-      bookB: arbData.bookB,
-      priceB: arbData.priceB,
-      sideB: arbData.sideB,
-      stakeB: arbData.stakeB,
-      edgePercent: arbData.edgePercent,
-      profitAmount: arbData.profitAmount,
-      totalStake: arbData.totalStake
-    });
-  }
+  if (!change) return;
+  appendJsonLine('line-changes.jsonl', withTimestamp(change));
 }
 
 /**
- * Log arbitrage opportunity to JSONL file
+ * Log an arbitrage opportunity.
+ * Expected shape (flexible, HF or Phase 1):
+ *  {
+ *    eventId,
+ *    marketType,
+ *    line,
+ *    bookA,
+ *    bookB,
+ *    priceA,
+ *    priceB,
+ *    edgePercent,
+ *    isArbitrage,
+ *    ...extra
+ *  }
  */
-function logArbitrageOpportunity(opportunity) {
-  try {
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      eventId: opportunity.eventId,
-      marketType: opportunity.marketType,
-      profitMargin: opportunity.profitMargin,
-      expectedProfit: opportunity.expectedProfit,
-      totalStake: opportunity.totalStake,
-      bookA: opportunity.bookA,
-      bookB: opportunity.bookB,
-      sideA: opportunity.sideA,
-      sideB: opportunity.sideB,
-      priceA: opportunity.priceA,
-      priceB: opportunity.priceB,
-      lineA: opportunity.lineA,
-      lineB: opportunity.lineB,
-      stakeA: opportunity.stakeA,
-      stakeB: opportunity.stakeB
-    };
-    
-    const line = JSON.stringify(logEntry) + '\n';
-    fs.appendFileSync(ARB_OPPORTUNITIES_LOG, line, 'utf8');
-  } catch (error) {
-    console.error('Error logging arbitrage opportunity:', error.message);
-  }
+function logArbitrage(arbData) {
+  if (!arbData) return;
+  appendJsonLine('arbitrage-opportunities.jsonl', withTimestamp(arbData));
 }
 
 /**
- * Log error to JSONL file
+ * Log a generic error in a structured way.
  */
-function logError(error, context = '') {
-  try {
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      context,
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    };
-    
-    const line = JSON.stringify(logEntry) + '\n';
-    fs.appendFileSync(ERRORS_LOG, line, 'utf8');
-  } catch (err) {
-    console.error('Error logging error:', err.message);
-  }
+function logError(context, error) {
+  const payload = {
+    context,
+    message: error && error.message ? error.message : String(error),
+    stack: error && error.stack ? error.stack : undefined,
+  };
+  appendJsonLine('errors.log', withTimestamp(payload));
 }
 
 /**
- * Log cycle summary to JSONL file
+ * Log a cycle summary (main engine or HF tracker).
+ * Example fields:
+ *  { cycleNumber, oddsCount, changesCount, arbCount, durationMs, source }
  */
 function logCycleSummary(summary) {
-  try {
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      ...summary
-    };
-    
-    const line = JSON.stringify(logEntry) + '\n';
-    fs.appendFileSync(CYCLE_SUMMARY_LOG, line, 'utf8');
-  } catch (error) {
-    console.error('Error logging cycle summary:', error.message);
-  }
+  if (!summary) return;
+  appendJsonLine('cycle-summary.jsonl', withTimestamp(summary));
 }
 
 /**
- * Log scraper performance to JSONL file
+ * Log per-scraper performance metrics.
+ * Example fields:
+ *  { book, cycleNumber, durationMs, success, errorMessage }
  */
-function logScraperPerformance(performance) {
-  try {
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      ...performance
-    };
-    
-    const line = JSON.stringify(logEntry) + '\n';
-    fs.appendFileSync(SCRAPER_PERFORMANCE_LOG, line, 'utf8');
-  } catch (error) {
-    console.error('Error logging scraper performance:', error.message);
-  }
+function logScraperPerformance(metrics) {
+  if (!metrics) return;
+  appendJsonLine('scraper-performance.jsonl', withTimestamp(metrics));
 }
 
 module.exports = {
   logLineChange,
-  logArbitrageOpportunity,
+  logArbitrage,
   logError,
   logCycleSummary,
-  logScraperPerformance
+  logScraperPerformance,
 };

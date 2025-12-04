@@ -1,8 +1,11 @@
 // src/highfreq/lightweightScraper.js
-// FIXED: Proper eventId generation + line extraction
+// FIXED: Proper eventId generation + line extraction + team name normalization
 
 const config = require('../../config');
-const { createEventId, parseGameTime } = require('../core/normalizer');
+const { createEventId, parseGameTime, normalizeTeam } = require('../core/normalizer');
+
+// Debug flag
+const DEBUG = process.env.ARB_DEBUG === 'true' || process.env.ARB_DEBUG === '1';
 
 /**
  * Lightweight scrape - only main markets from limited games
@@ -28,8 +31,17 @@ async function lightweightScrape(scraper, bookName, maxGames = 8) {
       const gameTimeData = parseGameTime(game.gameTime);
       const gameDate = gameTimeData.date; // Just YYYY-MM-DD, no timestamp
       
-      // Generate stable eventId (same game = same ID across cycles)
-      const eventId = createEventId(game.awayTeam, game.homeTeam, gameDate);
+      // ✅ CRITICAL FIX: Normalize team names BEFORE creating eventId
+      // This ensures "LA Rams" (DK) and "Los Angeles Rams" (BetMGM) get the same eventId
+      const normalizedAway = normalizeTeam(game.awayTeam);
+      const normalizedHome = normalizeTeam(game.homeTeam);
+      
+      if (DEBUG) {
+        console.log(`[DEBUG] ${bookName}: "${game.awayTeam}" → "${normalizedAway}" | "${game.homeTeam}" → "${normalizedHome}"`);
+      }
+      
+      // Generate stable eventId (same game = same ID across cycles AND across books)
+      const eventId = createEventId(normalizedAway, normalizedHome, gameDate);
       
       if (!eventId) {
         console.warn(`   ⚠️  Failed to generate eventId for ${game.awayTeam} @ ${game.homeTeam}`);

@@ -1,15 +1,20 @@
-// src/latency/latencyAnalyzer.js
+﻿// src/latency/latencyAnalyzer.js
+// Computes per-book latency metrics from line_changes windows
+
 const { buildTimeWindows } = require('./windowBuilder');
 
 /**
- * Analyze latency patterns from line_changes data
+ * Analyze latency for a given time range
+ * @param {Object} db - Database wrapper
+ * @param {Object} options - { startTime, endTime, windowMs }
+ * @returns {Array} Per-book latency metrics
  */
-async function analyzeLatency(db, windowMs) {
+async function analyzeLatencyForRange(db, options = {}) {
   if (!db.connected) {
     throw new Error('Database not connected');
   }
 
-  const windows = await buildTimeWindows(db, windowMs);
+  const windows = await buildTimeWindows(db, options);
   const latencyMetrics = computeLatencyMetrics(windows);
   
   return latencyMetrics;
@@ -17,83 +22,133 @@ async function analyzeLatency(db, windowMs) {
 
 /**
  * Compute per-book latency metrics from windows
+ * @param {Array} windows - Array of window objects with changesByBook
+ * @returns {Array} Per-book aggregated metrics
  */
 function computeLatencyMetrics(windows) {
   const bookStats = {};
   
+  if (!windows || windows.length === 0) {
+    return [];
+  }
+  
   windows.forEach(window => {
-    const { eventId, marketType, changes } = window;
+    const { marketType, changesByBook } = window;
     
-    if (changes.length === 0) return;
+    if (!changesByBook) return;
     
-    // Sort by timestamp
-    const sorted = changes.sort((a, b) => 
-      new Date(a.detected_at) - new Date(b.detected_at)
-    );
+    const books = Object.keys(changesByBook);
+    if (books.length < 2) return;
     
-    const firstMover = sorted[0].book;
-    const firstTime = new Date(sorted[0].detected_at).getTime();
+    // Find earliest move time across all books in this window
+    let fastestBook = null;
+    let fastestTime = Infinity;
     
-    // Initialize book stats
-    if (!bookStats[firstMover]) {
-      bookStats[firstMover] = {
-        book: firstMover,
-        firstMoverCount: 0,
-        totalWindows: 0,
-        avgDelayMs: 0,
-        marketBreakdown: {}
-      };
-    }
+    books.forEach(book => {
+      const bookChanges = changesByBook[book];
+      if (bookChanges && bookChanges.length > 0) {
+        const earliestChange = Math.min(...bookChanges.map(c => c.timestamp));
+        if (earliestChange < fastestTime) {
+          fastestTime = earliestChange;
+          fastestBook = book;
+        }
+      }
+    });
     
-    bookStats[firstMover].firstMoverCount++;
+    if (!fastestBook) return;
     
-    // Track delays for other books
-    sorted.forEach((change, idx) => {
-      const book = change.book;
-      
+    // Track stats for each book
+    books.forEach(book => {
       if (!bookStats[book]) {
         bookStats[book] = {
           book,
-          firstMoverCount: 0,
           totalWindows: 0,
-          avgDelayMs: 0,
+          windowsWithChange: 0,
+          firstMoverCount: 0,
+          lastMoverCount: 0,
+          totalDelayMs: 0,
+          delayCount: 0,
           marketBreakdown: {}
         };
       }
       
-      bookStats[book].totalWindows++;
+      const stats = bookStats[book];
+      stats.totalWindows++;
+      stats.windowsWithChange++;
       
-      if (idx > 0) {
-        const delay = new Date(change.detected_at).getTime() - firstTime;
-        const current = bookStats[book].avgDelayMs * (bookStats[book].totalWindows - 1);
-        bookStats[book].avgDelayMs = (current + delay) / bookStats[book].totalWindows;
+      // Track if this book was first
+      if (book === fastestBook) {
+        stats.firstMoverCount++;
+      }
+      
+      // Calculate delay vs fastest
+      const bookChanges = changesByBook[book];
+      if (bookChanges && bookChanges.length > 0) {
+        const bookFirstMove = Math.min(...bookChanges.map(c => c.timestamp));
+        const delay = bookFirstMove - fastestTime;
+        
+        if (delay > 0) {
+          stats.totalDelayMs += delay;
+          stats.delayCount++;
+        }
       }
       
       // Market breakdown
-      if (!bookStats[book].marketBreakdown[marketType]) {
-        bookStats[book].marketBreakdown[marketType] = {
-          firstMoverCount: 0,
-          totalWindows: 0
+      if (!stats.marketBreakdown[marketType]) {
+        stats.marketBreakdown[marketType] = {
+          totalWindows: 0,
+          firstMoverCount: 0
         };
       }
-      
-      bookStats[book].marketBreakdown[marketType].totalWindows++;
-      
-      if (book === firstMover) {
-        bookStats[book].marketBreakdown[marketType].firstMoverCount++;
+      stats.marketBreakdown[marketType].totalWindows++;
+      if (book === fastestBook) {
+        stats.marketBreakdown[marketType].firstMoverCount++;
       }
     });
+    
+    // Track last mover
+    let slowestBook = null;
+    let slowestTime = 0;
+    books.forEach(book => {
+      const bookChanges = changesByBook[book];
+      if (bookChanges && bookChanges.length > 0) {
+        const latestChange = Math.max(...bookChanges.map(c => c.timestamp));
+        if (latestChange > slowestTime) {
+          slowestTime = latestChange;
+          slowestBook = book;
+        }
+      }
+    });
+    if (slowestBook && bookStats[slowestBook]) {
+      bookStats[slowestBook].lastMoverCount++;
+    }
   });
   
-  // Compute fractions
-  Object.values(bookStats).forEach(stats => {
-    stats.firstMoverFraction = stats.firstMoverCount / stats.totalWindows;
-  });
-  
-  return Object.values(bookStats);
+  // Compute derived metrics
+  return Object.values(bookStats).map(stats => ({
+    book: stats.book,
+    totalWindows: stats.totalWindows,
+    windowsWithChange: stats.windowsWithChange,
+    avgDelayMsVsFastest: stats.delayCount > 0 
+      ? Math.round(stats.totalDelayMs / stats.delayCount) 
+      : 0,
+    fractionFirstToMove: stats.totalWindows > 0 
+      ? stats.firstMoverCount / stats.totalWindows 
+      : 0,
+    fractionLastToMove: stats.totalWindows > 0 
+      ? stats.lastMoverCount / stats.totalWindows 
+      : 0,
+    marketBreakdown: stats.marketBreakdown
+  }));
+}
+
+// Legacy alias for backward compatibility
+async function analyzeLatency(db, windowMs) {
+  return analyzeLatencyForRange(db, { windowMs });
 }
 
 module.exports = {
+  analyzeLatencyForRange,
   analyzeLatency,
   computeLatencyMetrics
 };

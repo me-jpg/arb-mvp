@@ -3,7 +3,11 @@
 
 const { lightweightScrape } = require('./lightweightScraper');
 const { detectChanges } = require('./changeDetector');
-const { findArbitrageOpportunities } = require('../utils/arbitrageMatcher');
+const { 
+  findArbitrageOpportunities, 
+  logArbitrageSummary,
+  formatForBroadcast 
+} = require('./arbitrageEngine');
 const oddsCache = require('./oddsCache');
 const config = require('../../config');
 const wsServer = require('../websocket/ws-server');
@@ -46,7 +50,7 @@ async function runHighFrequencyCycle({ scrapers, db, logger }) {
       };
     } catch (error) {
       console.error(`❌ HF scrape error (${bookName}):`, error.message);
-      logger.logError(error, `HF scrape (${bookName})`);
+      logger.logError(`HF scrape (${bookName})`, error);
       return {
         bookName,
         records: [],
@@ -74,11 +78,19 @@ async function runHighFrequencyCycle({ scrapers, db, logger }) {
     };
   });
 
-  // ✅ NEW: Find arbitrage opportunities
-  const arbitrageOpportunities = findArbitrageOpportunities(
-    allOddsRecords, 
-    config.totalStake || 1000
-  );
+  // ✅ NEW: Find arbitrage opportunities using the new engine
+  // Uses HF-specific threshold (separate from Phase 1 minProfitMargin)
+  const hfMinEdgePercent = config.highFrequency.arbitrageMinEdgePercent ?? 0;
+  const arbResult = findArbitrageOpportunities(allOddsRecords, {
+    cycleId: `hf-${Date.now()}`,
+    minEdge: hfMinEdgePercent / 100  // Convert percentage to decimal (0.5% → 0.005)
+  });
+  
+  const arbitrageOpportunities = arbResult.opportunities || [];
+  const arbStats = arbResult.stats || {};
+  
+  // Log arbitrage summary (includes debug info when ARB_DEBUG=true)
+  logArbitrageSummary(arbitrageOpportunities, arbStats);
 
   // Detect line changes
   const changes = detectChanges(allOddsRecords, oddsCache);
@@ -86,7 +98,8 @@ async function runHighFrequencyCycle({ scrapers, db, logger }) {
   // Broadcast arbitrage opportunities
   if (arbitrageOpportunities.length > 0) {
     arbitrageOpportunities.forEach(opp => {
-      wsServer.sendMessage('arbitrage_opportunity', opp);
+      const broadcastMsg = formatForBroadcast(opp);
+      wsServer.sendMessage('arbitrage_opportunity', broadcastMsg);
     });
   }
 
@@ -116,7 +129,7 @@ async function runHighFrequencyCycle({ scrapers, db, logger }) {
         
         // Log to JSONL
         arbitrageOpportunities.forEach(opp => {
-          logger.logArbitrageOpportunity(opp);
+          logger.logArbitrage(opp);
         });
       }
     } catch (error) {

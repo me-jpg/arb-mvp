@@ -126,7 +126,36 @@ function runArbitrageEngine(oddsRecords, options = {}) {
   }
 
   const uniqueRawEventIds = new Set(oddsRecords.map(r => r.eventId));
-  debugLog(`runArbitrageEngine: received ${oddsRecords.length} odds records across ${uniqueRawEventIds.size} unique raw eventIds cycle=${cycleId}`);
+  debugLog(`runArbitrageEngine: received ${oddsRecords.length} odds records across ${uniqueRawEventIds.size} unique eventIds cycle=${cycleId}`);
+
+  // Enhanced debug: Show eventIds per book to verify cross-book matching
+  if (ARB_DEBUG) {
+    const bookEventIds = {};
+    oddsRecords.forEach(r => {
+      if (!bookEventIds[r.book]) bookEventIds[r.book] = new Set();
+      bookEventIds[r.book].add(r.eventId);
+    });
+    
+    console.log('[ARB_DEBUG] EventIds per book:');
+    Object.entries(bookEventIds).forEach(([book, eventIds]) => {
+      console.log(`  ${book}: ${eventIds.size} events`);
+      // Show first 3 eventIds as samples
+      const sample = Array.from(eventIds).slice(0, 3);
+      sample.forEach(id => console.log(`    - ${id}`));
+    });
+    
+    // Check for cross-book event overlap
+    const allBooks = Object.keys(bookEventIds);
+    if (allBooks.length >= 2) {
+      const book1Events = bookEventIds[allBooks[0]];
+      const book2Events = bookEventIds[allBooks[1]];
+      const overlap = [...book1Events].filter(e => book2Events.has(e));
+      console.log(`[ARB_DEBUG] Cross-book overlap (${allBooks[0]} ∩ ${allBooks[1]}): ${overlap.length} events`);
+      if (overlap.length === 0) {
+        console.log('[ARB_DEBUG] ⚠️  NO OVERLAP - eventIds are not matching across books!');
+      }
+    }
+  }
 
   // Step 1: Group records by gameKey -> marketKey -> outcome -> book
   const gameMap = new Map(); // gameKey -> { meta, markets: Map }
@@ -212,6 +241,27 @@ function runArbitrageEngine(oddsRecords, options = {}) {
     ...multiBookCounts,
     totalMultiBookMarkets
   })}`);
+
+  // Enhanced debug: Show per-event book coverage
+  if (ARB_DEBUG) {
+    console.log(`[ARB_DEBUG] Per-event book coverage:`);
+    let eventsWithMultiBook = 0;
+    for (const [gameKey, gameBucket] of gameMap) {
+      const booksInGame = new Set();
+      for (const [marketKey, marketBucket] of gameBucket.markets) {
+        for (const [outcomeKey, outcomeBucket] of marketBucket.outcomes) {
+          for (const book of outcomeBucket.keys()) {
+            booksInGame.add(book);
+          }
+        }
+      }
+      if (booksInGame.size >= 2) {
+        eventsWithMultiBook++;
+        console.log(`  ${gameKey}: ${booksInGame.size} books (${Array.from(booksInGame).join(', ')})`);
+      }
+    }
+    console.log(`[ARB_DEBUG] Events with 2+ books: ${eventsWithMultiBook}/${gameMap.size}`);
+  }
 
   if (totalMultiBookMarkets === 0) {
     debugLog(`NO multi-book markets found this cycle. events=${gameMap.size} sampleGameKey=${gameMap.keys().next().value || 'none'} cycle=${cycleId}`);
@@ -310,6 +360,12 @@ function runArbitrageEngine(oddsRecords, options = {}) {
       // Arbitrage exists if sum of implied probabilities < 1
       if (totalImplied < 1) {
         const edge = 1 - totalImplied;
+        
+        // Debug: Log ALL potential arbs before filtering
+        if (ARB_DEBUG) {
+          console.log(`[ARB_DEBUG] 🎯 RAW ARB CANDIDATE: edge=${(edge * 100).toFixed(3)}% minEdge=${(minEdge * 100).toFixed(3)}% eventId=${gameBucket.meta.eventId} market=${marketKey}`);
+          console.log(`  ${bestBookA} ${outcomeA} @ ${bestPriceA} vs ${bestBookB} ${outcomeB} @ ${bestPriceB}`);
+        }
 
         if (edge >= minEdge) {
           // Calculate stakes for guaranteed profit (assuming $1000 total stake)
