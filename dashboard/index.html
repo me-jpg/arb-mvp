@@ -1,18 +1,693 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ARB Dashboard</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HF Tracker - Arbitrage Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0e14;
+      --bg-secondary: #121920;
+      --bg-card: #1a222d;
+      --border: #2a3545;
+      --text-primary: #e6eaf0;
+      --text-secondary: #8b9aad;
+      --accent-green: #00ff9d;
+      --accent-red: #ff4757;
+      --accent-blue: #4da8ff;
+      --accent-yellow: #ffd93d;
+      --accent-purple: #a855f7;
+    }
 
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      background-image: 
+        radial-gradient(ellipse at 0% 0%, rgba(0, 255, 157, 0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 100% 100%, rgba(77, 168, 255, 0.05) 0%, transparent 50%);
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-blue) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--bg-card);
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent-red);
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.connected {
+      background: var(--accent-green);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+    }
+
+    .card-header h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .badge-green {
+      background: rgba(0, 255, 157, 0.15);
+      color: var(--accent-green);
+    }
+
+    .badge-blue {
+      background: rgba(77, 168, 255, 0.15);
+      color: var(--accent-blue);
+    }
+
+    .card-body {
+      padding: 0;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .card-body::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .card-body::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+
+    .card-body::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    /* Arbitrage table */
+    .arb-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .arb-table th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      background: var(--bg-secondary);
+      position: sticky;
+      top: 0;
+    }
+
+    .arb-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+
+    .arb-table tr:hover {
+      background: rgba(77, 168, 255, 0.05);
+    }
+
+    .arb-row {
+      cursor: pointer;
+    }
+
+    .edge-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      color: var(--accent-green);
+    }
+
+    .profit-value {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-yellow);
+    }
+
+    .market-type {
+      display: inline-block;
+      padding: 4px 8px;
+      background: var(--bg-secondary);
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+
+    .book-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      background: var(--bg-primary);
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .book-badge.dk { border-left: 3px solid #53d769; }
+    .book-badge.fd { border-left: 3px solid #1a9fff; }
+    .book-badge.mgm { border-left: 3px solid #c4a000; }
+    .book-badge.espn { border-left: 3px solid #ff4444; }
+
+    /* Activity feed */
+    .activity-feed {
+      padding: 0;
+    }
+
+    .activity-item {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .activity-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+
+    .activity-icon.arb {
+      background: rgba(0, 255, 157, 0.15);
+    }
+
+    .activity-icon.change {
+      background: rgba(77, 168, 255, 0.15);
+    }
+
+    .activity-icon.cycle {
+      background: rgba(168, 85, 247, 0.15);
+    }
+
+    .activity-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .activity-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .activity-meta {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .activity-time {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    /* Stats bar */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .stat-value.green { color: var(--accent-green); }
+    .stat-value.blue { color: var(--accent-blue); }
+    .stat-value.yellow { color: var(--accent-yellow); }
+    .stat-value.purple { color: var(--accent-purple); }
+
+    /* Empty state */
+    .empty-state {
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--text-secondary);
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .stats-bar {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .stats-bar {
+        grid-template-columns: 1fr;
+      }
+      
+      .arb-table {
+        font-size: 0.8rem;
+      }
+      
+      .arb-table th,
+      .arb-table td {
+        padding: 10px 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <h1>⚡ HF Tracker</h1>
+    </div>
+    <div class="connection-status">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="connectionText">Disconnected</span>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-label">Arbitrage Opportunities</div>
+        <div class="stat-value green" id="arbCount">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Best Edge</div>
+        <div class="stat-value yellow" id="bestEdge">0.00%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Line Changes</div>
+        <div class="stat-value blue" id="changeCount">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Cycles</div>
+        <div class="stat-value purple" id="cycleCount">0</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Arbitrage Opportunities -->
+      <div class="card">
+        <div class="card-header">
+          <h2>💰 Live Arbitrage Opportunities</h2>
+          <span class="badge badge-green" id="liveArbBadge">0 Active</span>
+        </div>
+        <div class="card-body">
+          <table class="arb-table">
+            <thead>
+              <tr>
+                <th>Market</th>
+                <th>Book A</th>
+                <th>Price A</th>
+                <th>Book B</th>
+                <th>Price B</th>
+                <th>Edge</th>
+                <th>Profit</th>
+              </tr>
+            </thead>
+            <tbody id="arbTableBody">
+              <tr>
+                <td colspan="7">
+                  <div class="empty-state">
+                    <div class="empty-state-icon">📊</div>
+                    <p>Waiting for arbitrage opportunities...</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Activity Feed -->
+      <div class="card">
+        <div class="card-header">
+          <h2>📡 Activity Feed</h2>
+          <span class="badge badge-blue" id="activityBadge">Live</span>
+        </div>
+        <div class="card-body activity-feed" id="activityFeed">
+          <div class="empty-state">
+            <div class="empty-state-icon">⏳</div>
+            <p>Connecting to tracker...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Configuration
+    const WS_URL = 'ws://localhost:8080';
+    const MAX_ARBS = 50;
+    const MAX_ACTIVITY = 100;
+
+    // State
+    let ws = null;
+    let arbitrages = [];
+    let activities = [];
+    let stats = {
+      arbCount: 0,
+      bestEdge: 0,
+      changeCount: 0,
+      cycleCount: 0
+    };
+
+    // DOM elements
+    const statusDot = document.getElementById('statusDot');
+    const connectionText = document.getElementById('connectionText');
+    const arbCountEl = document.getElementById('arbCount');
+    const bestEdgeEl = document.getElementById('bestEdge');
+    const changeCountEl = document.getElementById('changeCount');
+    const cycleCountEl = document.getElementById('cycleCount');
+    const liveArbBadge = document.getElementById('liveArbBadge');
+    const arbTableBody = document.getElementById('arbTableBody');
+    const activityFeed = document.getElementById('activityFeed');
+
+    // Connect to WebSocket
+    function connect() {
+      try {
+        ws = new WebSocket(WS_URL);
+
+        ws.onopen = () => {
+          statusDot.classList.add('connected');
+          connectionText.textContent = 'Connected';
+          addActivity('cycle', 'Connected to HF Tracker', 'WebSocket connection established');
+        };
+
+        ws.onclose = () => {
+          statusDot.classList.remove('connected');
+          connectionText.textContent = 'Disconnected';
+          addActivity('cycle', 'Disconnected', 'Attempting to reconnect...');
+          setTimeout(connect, 3000);
+        };
+
+        ws.onerror = (error) => {
+          console.error('WebSocket error:', error);
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            handleMessage(data);
+          } catch (e) {
+            console.error('Failed to parse message:', e);
+          }
+        };
+      } catch (error) {
+        console.error('Connection error:', error);
+        setTimeout(connect, 3000);
+      }
+    }
+
+    // Handle incoming messages
+    function handleMessage(data) {
+      switch (data.type) {
+        case 'connected':
+          break;
+
+        case 'arbitrage':
+        case 'arbitrage_batch':
+          handleArbitrage(data);
+          break;
+
+        case 'line_changes':
+          handleLineChanges(data);
+          break;
+
+        case 'cycle_summary':
+          handleCycleSummary(data);
+          break;
+
+        default:
+          console.log('Unknown message type:', data.type);
+      }
+    }
+
+    // Handle arbitrage opportunities
+    function handleArbitrage(data) {
+      const opps = data.opportunities || [data];
+      
+      opps.forEach(opp => {
+        const arbData = opp.opportunity || opp;
+        arbitrages.unshift({
+          timestamp: opp.timestamp || new Date().toISOString(),
+          eventId: opp.eventId,
+          event: opp.event,
+          marketType: opp.marketType,
+          line: opp.line,
+          ...arbData
+        });
+      });
+
+      // Keep only recent
+      arbitrages = arbitrages.slice(0, MAX_ARBS);
+      
+      // Update stats
+      stats.arbCount += opps.length;
+      const edges = arbitrages.map(a => a.edgePercent || 0);
+      stats.bestEdge = Math.max(...edges, stats.bestEdge);
+      
+      // Add to activity
+      const bestOpp = opps.reduce((a, b) => 
+        (a.opportunity?.edgePercent || 0) > (b.opportunity?.edgePercent || 0) ? a : b
+      );
+      addActivity('arb', 
+        `${opps.length} arbitrage${opps.length > 1 ? 's' : ''} found`,
+        `Best: ${(bestOpp.opportunity?.edgePercent || data.bestEdge || 0).toFixed(2)}% edge`
+      );
+
+      updateUI();
+    }
+
+    // Handle line changes
+    function handleLineChanges(data) {
+      stats.changeCount += data.count || data.changes?.length || 0;
+      
+      addActivity('change',
+        `${data.count} line change${data.count > 1 ? 's' : ''}`,
+        data.changes?.[0] ? `${data.changes[0].book} ${data.changes[0].marketType}` : ''
+      );
+      
+      updateUI();
+    }
+
+    // Handle cycle summary
+    function handleCycleSummary(data) {
+      stats.cycleCount = data.cycle;
+      
+      addActivity('cycle',
+        `Cycle ${data.cycle} complete`,
+        `${data.oddsRecords} odds | ${data.changesDetected} changes | ${data.durationMs}ms`
+      );
+      
+      updateUI();
+    }
+
+    // Add activity item
+    function addActivity(type, title, meta) {
+      activities.unshift({
+        type,
+        title,
+        meta,
+        time: new Date().toLocaleTimeString()
+      });
+      activities = activities.slice(0, MAX_ACTIVITY);
+    }
+
+    // Get book badge class
+    function getBookClass(book) {
+      const b = book.toLowerCase();
+      if (b.includes('draft')) return 'dk';
+      if (b.includes('fanduel')) return 'fd';
+      if (b.includes('mgm')) return 'mgm';
+      if (b.includes('espn')) return 'espn';
+      return '';
+    }
+
+    // Update UI
+    function updateUI() {
+      // Stats
+      arbCountEl.textContent = stats.arbCount;
+      bestEdgeEl.textContent = stats.bestEdge.toFixed(2) + '%';
+      changeCountEl.textContent = stats.changeCount;
+      cycleCountEl.textContent = stats.cycleCount;
+      liveArbBadge.textContent = arbitrages.length + ' Active';
+
+      // Arbitrage table
+      if (arbitrages.length === 0) {
+        arbTableBody.innerHTML = `
+          <tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <div class="empty-state-icon">📊</div>
+                <p>Waiting for arbitrage opportunities...</p>
+              </div>
+            </td>
+          </tr>
+        `;
+      } else {
+        arbTableBody.innerHTML = arbitrages.map(arb => `
+          <tr class="arb-row">
+            <td>
+              <span class="market-type">${arb.marketType}</span>
+              ${arb.line ? `<br><small>${arb.line}</small>` : ''}
+            </td>
+            <td>
+              <span class="book-badge ${getBookClass(arb.bookA)}">${arb.bookA}</span>
+              <br><small>${arb.sideA || ''}</small>
+            </td>
+            <td><span class="book-badge">${arb.priceA > 0 ? '+' : ''}${arb.priceA}</span></td>
+            <td>
+              <span class="book-badge ${getBookClass(arb.bookB)}">${arb.bookB}</span>
+              <br><small>${arb.sideB || ''}</small>
+            </td>
+            <td><span class="book-badge">${arb.priceB > 0 ? '+' : ''}${arb.priceB}</span></td>
+            <td><span class="edge-value">${(arb.edgePercent || 0).toFixed(2)}%</span></td>
+            <td><span class="profit-value">$${(arb.profitAmount || 0).toFixed(2)}</span></td>
+          </tr>
+        `).join('');
+      }
+
+      // Activity feed
+      if (activities.length === 0) {
+        activityFeed.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">⏳</div>
+            <p>Connecting to tracker...</p>
+          </div>
+        `;
+      } else {
+        activityFeed.innerHTML = activities.map(act => {
+          const icons = { arb: '💰', change: '📈', cycle: '⚡' };
+          return `
+            <div class="activity-item">
+              <div class="activity-icon ${act.type}">${icons[act.type] || '📡'}</div>
+              <div class="activity-content">
+                <div class="activity-title">${act.title}</div>
+                <div class="activity-meta">${act.meta}</div>
+              </div>
+              <div class="activity-time">${act.time}</div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // Initialize
+    connect();
+    updateUI();
+  </script>
+</body>
+</html>
 

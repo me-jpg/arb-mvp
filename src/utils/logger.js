@@ -40,6 +40,30 @@ function logLineChange(change) {
   } catch (error) {
     console.error('Error logging line change:', error.message);
   }
+
+  /**
+   * Log arbitrage opportunity
+   */
+  logArbitrage(arbData) {
+    this.appendJsonLine('arbitrage-opportunities.jsonl', {
+      timestamp: arbData.timestamp || new Date().toISOString(),
+      eventId: arbData.eventId,
+      event: arbData.event,
+      marketType: arbData.marketType,
+      line: arbData.line,
+      bookA: arbData.bookA,
+      priceA: arbData.priceA,
+      sideA: arbData.sideA,
+      stakeA: arbData.stakeA,
+      bookB: arbData.bookB,
+      priceB: arbData.priceB,
+      sideB: arbData.sideB,
+      stakeB: arbData.stakeB,
+      edgePercent: arbData.edgePercent,
+      profitAmount: arbData.profitAmount,
+      totalStake: arbData.totalStake
+    });
+  }
 }
 
 /**
