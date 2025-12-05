@@ -232,3 +232,6 @@ resetWarningCounts();
 
 console.log('\n=== All signalGenerator tests passed! ===\n');
 
+
+
+
