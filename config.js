@@ -63,6 +63,13 @@ module.exports = {
     maxUtilizationWarning: parseFloat(process.env.HF_MAX_UTILIZATION || '1.5'), // 150%
     utilizationWarnCycles: parseInt(process.env.HF_UTIL_WARN_CYCLES || '3')
   },
+
+  // Execution + simulation defaults (offline)
+  execution: {
+    defaultStake: parseFloat(process.env.EXECUTION_DEFAULT_STAKE || '50'),
+    simSlippageBps: parseFloat(process.env.EXECUTION_SIM_SLIPPAGE_BPS || '0'),
+    simRejectProb: parseFloat(process.env.EXECUTION_SIM_REJECT_PROB || '0')
+  },
   
   // Phase 3: Latency & stale line analytics
   latency: {
