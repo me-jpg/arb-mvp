@@ -64,7 +64,10 @@ function runExecutionSimulation(signals = [], options = {}) {
     else if (result.status === 'rejected') summary.rejectedCount++;
 
     updateExposure(planned, result);
-    summary.simulatedExposure += planned.stake;
+    const filledStake = (result.status === 'filled' || result.status === 'partial')
+      ? (result.filledStake || 0)
+      : 0;
+    summary.simulatedExposure += filledStake;
 
     logger({
       ...baseEvent,
@@ -80,4 +83,3 @@ function runExecutionSimulation(signals = [], options = {}) {
 module.exports = {
   runExecutionSimulation
 };
-
