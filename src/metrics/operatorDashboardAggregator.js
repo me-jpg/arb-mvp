@@ -23,7 +23,8 @@ function buildOperatorDashboardSnapshot(input = {}, nowMs = Date.now()) {
         recentHedgeResults = [],
         recentHealthAdvisories = [],
         riskSummary = {},
-        modeSummary = {}
+        modeSummary = {},
+        latencySummary = null
     } = input;
 
     // Aggregate execution stats
@@ -38,12 +39,19 @@ function buildOperatorDashboardSnapshot(input = {}, nowMs = Date.now()) {
     // Get recent arbitrage events from buffer
     const recentArbitrageEvents = getRecentArbResults(arbResultsBuffer, nowMs);
 
+    // Get latency analytics (or use default empty)
+    const latencyAnalytics = latencySummary || {
+        perBook: [],
+        global: { windowMinutes: 0, totalEvents: 0, booksConsidered: [] }
+    };
+
     return {
         timestamp: new Date(nowMs).toISOString(),
         execution,
         risk,
         health,
-        recentArbitrageEvents
+        recentArbitrageEvents,
+        latencyAnalytics
     };
 }
 
