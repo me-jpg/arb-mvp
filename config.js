@@ -430,6 +430,28 @@ function getLatencyHealthConfig(config = CONFIG) {
   };
 }
 
+/**
+ * Get latency history configuration with defaults and clamping.
+ * @param {Object} config - Full config object
+ * @returns {Object} Latency history config
+ */
+function getLatencyHistoryConfig(config = CONFIG) {
+  const historyCfg = (config && config.latencyHistory) || {};
+
+  let maxPoints = typeof historyCfg.maxPoints === 'number' ? historyCfg.maxPoints : 60;
+  let minIntervalSeconds = typeof historyCfg.minIntervalSeconds === 'number' ? historyCfg.minIntervalSeconds : 30;
+
+  // Clamp to sane limits
+  maxPoints = Math.min(Math.max(maxPoints, 10), 500);
+  minIntervalSeconds = Math.min(Math.max(minIntervalSeconds, 5), 3600);
+
+  return {
+    maxPoints,
+    minIntervalSeconds,
+    minIntervalMs: minIntervalSeconds * 1000
+  };
+}
+
 module.exports = {
   ...CONFIG,
   getStakeSizingConfig,
@@ -445,5 +467,6 @@ module.exports = {
   getExecutionProfileConfig,
   getArbResultsBufferConfig,
   getLatencyMetricsConfig,
-  getLatencyHealthConfig
+  getLatencyHealthConfig,
+  getLatencyHistoryConfig
 };

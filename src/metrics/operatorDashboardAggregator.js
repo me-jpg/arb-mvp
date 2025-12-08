@@ -6,11 +6,13 @@
  */
 
 const { createArbResultsBuffer, addArbResult, getRecentArbResults } = require('./arbResultsBuffer');
-const { getArbResultsBufferConfig, getLatencyHealthConfig } = require('../../config');
+const { getArbResultsBufferConfig, getLatencyHealthConfig, getLatencyHistoryConfig } = require('../../config');
 const { classifyLatency } = require('./latencyHealthClassifier');
+const { createLatencyHistoryBuffer, addLatencySnapshot, getLatencyHistory } = require('./latencyHistoryBuffer');
 
-// Single in-memory buffer instance at module scope
+// Single in-memory buffer instances at module scope
 const arbResultsBuffer = createArbResultsBuffer(getArbResultsBufferConfig());
+const latencyHistoryBuffer = createLatencyHistoryBuffer(getLatencyHistoryConfig());
 
 /**
  * Build operator dashboard snapshot from input data.
@@ -50,6 +52,12 @@ function buildOperatorDashboardSnapshot(input = {}, nowMs = Date.now()) {
     const latencyHealthConfig = getLatencyHealthConfig();
     const latencyHealth = classifyLatency(latencyAnalytics, latencyHealthConfig);
 
+    // Add latency snapshot to history buffer
+    addLatencySnapshot(latencyHistoryBuffer, latencyAnalytics, nowMs);
+
+    // Get latency history
+    const latencyHistory = getLatencyHistory(latencyHistoryBuffer, nowMs);
+
     return {
         timestamp: new Date(nowMs).toISOString(),
         execution,
@@ -57,7 +65,8 @@ function buildOperatorDashboardSnapshot(input = {}, nowMs = Date.now()) {
         health,
         recentArbitrageEvents,
         latencyAnalytics,
-        latencyHealth
+        latencyHealth,
+        latencyHistory
     };
 }
 
