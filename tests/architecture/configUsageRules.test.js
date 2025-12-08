@@ -79,19 +79,7 @@ function scanForHardcodedConfig(filePath) {
             return;
         }
 
-        // Check if previous lines have ARCH_TEST_IGNORE (for annotations above code)
-        // Lookback of 5 to handle multi-line objects like DEFAULT_THRESHOLDS
-        let hasIgnoreAnnotation = false;
-        for (let lookback = Math.max(0, index - 5); lookback < index; lookback++) {
-            if (lines[lookback].includes('ARCH_TEST_IGNORE')) {
-                hasIgnoreAnnotation = true;
-                break;
-            }
-        }
 
-        if (hasIgnoreAnnotation) {
-            return;
-        }
 
         // Check if line contains any config keywords (case-insensitive)
         const lowerLine = line.toLowerCase();
