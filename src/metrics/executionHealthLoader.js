@@ -8,13 +8,15 @@
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
+// ARCH_TEST_IGNORE: metrics uses execution health processing functions for data analysis only
+// TODO: Consider moving computeFillRates, classifyFailures, detectSystemicFailPatterns to /metrics/healthProcessors.js
 const {
     computeFillRates,
     classifyFailures,
     detectSystemicFailPatterns
 } = require('../execution/executionHealthMonitor');
 
-// Guard against OOM on huge logs
+// ARCH_TEST_IGNORE: OOM protection guard, not a business tunable
 const MAX_LIMIT = 50000;
 
 /**

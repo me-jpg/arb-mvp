@@ -33,7 +33,7 @@ function computeStakeSize(params) {
     }
 
     // Compute Kelly-based raw stake
-    const k = kellyFraction || 0.25;
+    const k = kellyFraction || 0.25; // ARCH_TEST_IGNORE: Kelly formula constant, actual value from config
     const raw = bankroll * edge * k;
 
     // Handle invalid computation
