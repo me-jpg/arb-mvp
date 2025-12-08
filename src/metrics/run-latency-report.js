@@ -5,28 +5,60 @@
  * CLI tool for cross-book latency analysis.
  */
 
+const CONFIG = require('../../config');
 const { getLatencyMetricsConfig } = require('../../config');
 const db = require('../utils/db');
-const { loadLatencyEvents, computeCrossBookLatency, summarizeLatencyByBook } = require('./latencyAnalytics');
+const latencyAnalytics = require('./latencyAnalytics');
 
 /**
- * Parse CLI arguments.
+ * Core CLI handler (pure-ish, testable).
+ * @param {Object} options - CLI options
+ * @param {Object} deps - Dependencies for testing
+ * @returns {Promise<Object>} Result with windowMinutes and summary
  */
-function parseArgs(argv) {
-    const args = {
-        windowMinutes: null,
-        json: false
-    };
+async function runLatencyReportCli(options, deps) {
+    const { windowMinutes: windowMinutesOption, json } = options;
+    const { config, dbFactory, latencyAnalytics: analytics } = deps;
 
-    for (const arg of argv.slice(2)) {
-        if (arg.startsWith('--windowMinutes=')) {
-            args.windowMinutes = parseInt(arg.split('=')[1], 10);
-        } else if (arg === '--json') {
-            args.json = true;
+    // Resolve effective window
+    const latencyConfig = getLatencyMetricsConfig(config);
+    const windowMinutes = typeof windowMinutesOption === 'number'
+        ? windowMinutesOption
+        : latencyConfig.windowMinutes;
+
+    // Create DB client
+    const dbClient = await dbFactory();
+
+    try {
+        // Load latency events
+        const events = await analytics.loadLatencyEvents(dbClient, { windowMinutes });
+
+        // Compute statistics
+        const stats = analytics.computeCrossBookLatency(events, {
+            windowMinutes,
+            minEventsPerBook: latencyConfig.minEventsPerBook,
+            maxBooks: latencyConfig.maxBooks
+        });
+
+        // Summarize
+        const summary = analytics.summarizeLatencyByBook(stats, { windowMinutes });
+
+        // Output
+        if (json) {
+            console.log(JSON.stringify({ latencySummary: summary }, null, 2));
+        } else {
+            printPrettyReport(summary, latencyConfig);
+        }
+
+        return {
+            windowMinutes,
+            summary
+        };
+    } finally {
+        if (dbClient && dbClient.close) {
+            await dbClient.close();
         }
     }
-
-    return args;
 }
 
 /**
@@ -48,55 +80,51 @@ function printPrettyReport(summary, config) {
 }
 
 /**
- * Main function.
+ * Build CLI runtime (parse args, create deps).
  */
-async function main() {
-    let dbClient = null;
+function buildCliRuntime() {
+    // Parse arguments
+    const args = {
+        windowMinutes: null,
+        json: false
+    };
 
-    try {
-        const args = parseArgs(process.argv);
-        const config = getLatencyMetricsConfig();
-
-        // Override windowMinutes if provided
-        const windowMinutes = args.windowMinutes || config.windowMinutes;
-
-        // Create DB client
-        dbClient = await db.connect();
-
-        // Load latency events
-        const events = await loadLatencyEvents(dbClient, { windowMinutes });
-
-        // Compute statistics
-        const latencyStats = computeCrossBookLatency(events, {
-            windowMinutes,
-            minEventsPerBook: config.minEventsPerBook,
-            maxBooks: config.maxBooks
-        });
-
-        // Summarize
-        const summary = summarizeLatencyByBook(latencyStats);
-
-        // Output
-        if (args.json) {
-            console.log(JSON.stringify({ latencySummary: summary }, null, 2));
-        } else {
-            printPrettyReport(summary, config);
-        }
-
-        process.exit(0);
-    } catch (error) {
-        console.error('Error:', error.message);
-        process.exit(1);
-    } finally {
-        if (dbClient) {
-            await db.close(dbClient);
+    for (const arg of process.argv.slice(2)) {
+        if (arg.startsWith('--windowMinutes=')) {
+            args.windowMinutes = parseInt(arg.split('=')[1], 10);
+        } else if (arg === '--json') {
+            args.json = true;
         }
     }
+
+    // Build dependencies
+    const deps = {
+        config: CONFIG,
+        dbFactory: async () => await db.connect(),
+        latencyAnalytics: {
+            loadLatencyEvents: latencyAnalytics.loadLatencyEvents,
+            computeCrossBookLatency: latencyAnalytics.computeCrossBookLatency,
+            summarizeLatencyByBook: latencyAnalytics.summarizeLatencyByBook
+        }
+    };
+
+    return { options: args, deps };
 }
 
-// Only run if executed directly
+// Script entry point
 if (require.main === module) {
-    main();
+    (async () => {
+        try {
+            const { options, deps } = buildCliRuntime();
+            await runLatencyReportCli(options, deps);
+            process.exit(0);
+        } catch (err) {
+            console.error('[latency-report] ERROR:', err.message || err);
+            process.exit(1);
+        }
+    })();
 }
 
-module.exports = { parseArgs, printPrettyReport, main };
+module.exports = {
+    runLatencyReportCli
+};
