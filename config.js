@@ -54,6 +54,10 @@ const CONFIG = {
       backoffFactor: 2,
       retryableErrorCodes: ['NETWORK_ERROR', 'TIMEOUT'],
       retryableFailureReasons: ['transient', 'unknown']
+    },
+    idempotency: {
+      enabled: true,
+      lookbackWindowMs: 5 * 60 * 1000 // 5 minutes
     }
   },
 
@@ -156,10 +160,30 @@ function getExecutionRetryConfig(config = CONFIG) {
   };
 }
 
+/**
+ * Get execution idempotency configuration with defaults.
+ * @param {Object} config - Full config object
+ * @returns {Object} Idempotency config with defaults
+ */
+function getExecutionIdempotencyConfig(config = CONFIG) {
+  const idempotency = config?.execution?.idempotency;
+  if (!idempotency) {
+    return {
+      enabled: true,
+      lookbackWindowMs: 5 * 60 * 1000
+    };
+  }
+  return {
+    enabled: idempotency.enabled !== undefined ? idempotency.enabled : true,
+    lookbackWindowMs: idempotency.lookbackWindowMs !== undefined ? idempotency.lookbackWindowMs : 5 * 60 * 1000
+  };
+}
+
 module.exports = {
   ...CONFIG,
   getStakeSizingConfig,
   getExecutionHealthAdvisoryMode,
   getExecutionRiskConfig,
-  getExecutionRetryConfig
+  getExecutionRetryConfig,
+  getExecutionIdempotencyConfig
 };
