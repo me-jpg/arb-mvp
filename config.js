@@ -361,6 +361,30 @@ function getArbResultsBufferConfig(config = CONFIG) {
   };
 }
 
+/**
+ * Get latency metrics configuration with defaults and clamping.
+ * @param {Object} config - Full config object
+ * @returns {Object} Latency metrics config
+ */
+function getLatencyMetricsConfig(config = CONFIG) {
+  const latCfg = (config && config.latencyMetrics) || {};
+
+  let windowMinutes = typeof latCfg.windowMinutes === 'number' ? latCfg.windowMinutes : 15;
+  let minEventsPerBook = typeof latCfg.minEventsPerBook === 'number' ? latCfg.minEventsPerBook : 20;
+  let maxBooks = typeof latCfg.maxBooks === 'number' ? latCfg.maxBooks : 20;
+
+  // Clamp to sane limits
+  windowMinutes = Math.min(Math.max(windowMinutes, 1), 120);
+  minEventsPerBook = Math.min(Math.max(minEventsPerBook, 1), 1000);
+  maxBooks = Math.min(Math.max(maxBooks, 1), 100);
+
+  return {
+    windowMinutes,
+    minEventsPerBook,
+    maxBooks
+  };
+}
+
 module.exports = {
   ...CONFIG,
   getStakeSizingConfig,
@@ -374,5 +398,6 @@ module.exports = {
   getExecutionLatencyGuardConfig,
   DEFAULT_EXECUTION_PROFILES,
   getExecutionProfileConfig,
-  getArbResultsBufferConfig
+  getArbResultsBufferConfig,
+  getLatencyMetricsConfig
 };
