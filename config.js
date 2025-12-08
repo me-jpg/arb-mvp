@@ -265,6 +265,32 @@ function getExecutionLatencyGuardConfig(config = CONFIG) {
   };
 }
 
+/**
+ * Get execution profile configuration merged with base config.
+ * @param {Object} baseConfig - Base configuration object
+ * @param {string} profileName - Profile name to apply
+ * @returns {Object} Merged configuration
+ */
+function getExecutionProfileConfig(baseConfig, profileName) {
+  const profiles = DEFAULT_EXECUTION_PROFILES;
+  const profile = profiles[profileName];
+
+  if (!profile) {
+    // Unknown profile: return baseConfig unchanged
+    return baseConfig || {};
+  }
+
+  // Shallow merge: profile.execution overrides baseConfig.execution
+  const cfg = baseConfig || {};
+  const mergedExecution = Object.assign(
+    {},
+    cfg.execution || {},
+    profile.execution || {}
+  );
+
+  return Object.assign({}, cfg, { execution: mergedExecution });
+}
+
 module.exports = {
   ...CONFIG,
   getStakeSizingConfig,
@@ -275,5 +301,7 @@ module.exports = {
   getArbExecutionConfig,
   getExecutionHedgingConfig,
   getExecutionModeConfig,
-  getExecutionLatencyGuardConfig
+  getExecutionLatencyGuardConfig,
+  DEFAULT_EXECUTION_PROFILES,
+  getExecutionProfileConfig
 };
