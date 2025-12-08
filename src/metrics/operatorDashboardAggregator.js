@@ -2,7 +2,7 @@
  * src/metrics/operatorDashboardAggregator.js
  * 
  * Backend aggregation layer for operator dashboard.
- * Pure aggregation logic: array-in → object-out.
+ * Pure aggregation logic with arb buffer integration.
  */
 
 const { createArbResultsBuffer, addArbResult, getRecentArbResults } = require('./arbResultsBuffer');
@@ -13,16 +13,11 @@ const arbResultsBuffer = createArbResultsBuffer(getArbResultsBufferConfig());
 
 /**
  * Build operator dashboard snapshot from input data.
- * 
  * @param {Object} input - Input data
- * @param {Array} input.recentArbResults - Latest arbResult objects
- * @param {Array} input.recentHedgeResults - Hedge execution results
- * @param {Array} input.recentHealthAdvisories - Health advisory log entries
- * @param {Object} input.riskSummary - Exposure, caps, PnL data
- * @param {Object} input.modeSummary - Execution mode, safety flags
- * @returns {Object} Consolidated dashboard snapshot
+ * @param {number} nowMs - Current timestamp in ms
+ * @returns {Object} Dashboard snapshot
  */
-function buildOperatorDashboardSnapshot(input = {}) {
+function buildOperatorDashboardSnapshot(input = {}, nowMs = Date.now()) {
     const {
         recentArbResults = [],
         recentHedgeResults = [],
@@ -38,13 +33,17 @@ function buildOperatorDashboardSnapshot(input = {}) {
     const risk = aggregateRiskMetrics(riskSummary);
 
     // Aggregate health advisories
-    const health = aggregateHealthAdvisories(recentHealthAdvisories);
+    const health = aggregateHealthAdvisories(recentHealthAdvisories, nowMs);
+
+    // Get recent arbitrage events from buffer
+    const recentArbitrageEvents = getRecentArbResults(arbResultsBuffer, nowMs);
 
     return {
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(nowMs).toISOString(),
         execution,
         risk,
-        health
+        health,
+        recentArbitrageEvents
     };
 }
 
@@ -144,7 +143,7 @@ function aggregateRiskMetrics(riskSummary) {
 /**
  * Aggregate health advisories.
  */
-function aggregateHealthAdvisories(recentHealthAdvisories) {
+function aggregateHealthAdvisories(recentHealthAdvisories, nowMs) {
     if (!recentHealthAdvisories || recentHealthAdvisories.length === 0) {
         return {
             lastAdvisoryLevel: null,
@@ -165,7 +164,6 @@ function aggregateHealthAdvisories(recentHealthAdvisories) {
     const lastAdvisoryAt = mostRecent.timestamp || null;
 
     // Count advisories in last hour
-    const nowMs = Date.now();
     const oneHourAgo = nowMs - (60 * 60 * 1000);
     const advisoriesLastHour = recentHealthAdvisories.filter(advisory => {
         const timestamp = new Date(advisory.timestamp || 0).getTime();
@@ -179,9 +177,25 @@ function aggregateHealthAdvisories(recentHealthAdvisories) {
     };
 }
 
+/**
+ * Record an arbitrage result to the buffer.
+ * @param {Object} rawArb - Raw arb data
+ */
+function recordArbResult(rawArb) {
+    const normalized = {
+        eventId: (rawArb && rawArb.eventId) || null,
+        books: Array.isArray(rawArb && rawArb.books) ? rawArb.books : [],
+        edge: typeof (rawArb && rawArb.edge) === 'number' ? rawArb.edge : 0,
+        marketType: (rawArb && rawArb.marketType) || 'unknown',
+        createdAtMs: typeof (rawArb && rawArb.createdAtMs) === 'number'
+            ? rawArb.createdAtMs
+            : Date.now()
+    };
+
+    addArbResult(arbResultsBuffer, normalized, Date.now());
+}
+
 module.exports = {
     buildOperatorDashboardSnapshot,
-    aggregateExecutionStats,
-    aggregateRiskMetrics,
-    aggregateHealthAdvisories
+    recordArbResult
 };
