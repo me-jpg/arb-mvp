@@ -334,7 +334,36 @@ async function executeArbPlan(arbPlan, engineContext) {
     }
   };
 
-  return orchestrateArbExecution(arbPlan, context);
+  // Execute arb through orchestrator
+  const arbResult = await orchestrateArbExecution(arbPlan, context);
+
+  // Hedge execution hook (config-gated)
+  const { getExecutionHedgingConfig } = require('../config');
+  const hedgingConfig = getExecutionHedgingConfig(engineContext.config || {});
+
+  if (
+    hedgingConfig.enabled &&
+    hedgingConfig.executeHedges &&
+    arbResult &&
+    arbResult.hedgingPlan &&
+    Array.isArray(arbResult.hedgingPlan.hedges) &&
+    arbResult.hedgingPlan.hedges.length > 0
+  ) {
+    // Execute hedges through arbHedgeExecutor
+    const hedgeExecutionResult = await executeHedgingPlan(
+      arbResult.hedgingPlan,
+      engineContext
+    );
+
+    // Attach hedge execution results
+    return {
+      ...arbResult,
+      hedgeExecutionResult
+    };
+  }
+
+  // Default: return arb result (compute-only or no hedges)
+  return arbResult;
 }
 
 module.exports = {
