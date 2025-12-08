@@ -7,10 +7,18 @@ const { simulateExecution } = require('./simulatedExchange');
 const { logExecutionEvent } = require('./executionLogger');
 const { updateExposure } = require('../risk/riskState');
 const { buildRetryPolicy, shouldRetryExecution, computeNextBackoffMs } = require('./executionRetryPolicy');
-const { getExecutionRetryConfig, getExecutionIdempotencyConfig, getArbExecutionConfig } = require('../config');
+const {
+  getExecutionRetryConfig,
+  getExecutionIdempotencyConfig,
+  getArbExecutionConfig,
+  getExecutionModeConfig,
+  getExecutionHealthAdvisoryMode,
+  getExecutionRiskConfig
+} = require('../config');
 const { buildIdempotencyKey, shouldBlockDuplicate } = require('./executionIdempotency');
 const { normalizeExecutionResult, mergePartialFill } = require('./executionResultNormalizer');
 const { orchestrateArbExecution } = require('./arbExecutionOrchestrator');
+const { resolveExecutionMode, validateLiveSafety } = require('./executionModeGuard');
 
 /**
  * Sleep utility for retry delays.
@@ -115,6 +123,44 @@ function runExecutionSimulation(signals = [], options = {}) {
  * @returns {Promise<Object>} Execution result
  */
 async function executeWithRetry(order, context) {
+  const config = context.config || {};
+  const mode = resolveExecutionMode(config);
+
+  // Simulation mode: return synthetic result immediately
+  if (mode === 'simulation') {
+    return {
+      requestedStake: order.stake,
+      filledStake: order.stake,
+      remainingStake: 0,
+      status: 'simulated',
+      errorCode: null,
+      errorMessage: null,
+      raw: { mode: 'simulation', synthetic: true }
+    };
+  }
+
+  // Live mode: validate safety before proceeding
+  if (mode === 'live') {
+    const healthConfig = getExecutionHealthAdvisoryMode(config);
+    const riskConfig = getExecutionRiskConfig(config);
+    const idempotencyConfig = getExecutionIdempotencyConfig(config);
+
+    const safetyCheck = validateLiveSafety(config, healthConfig, riskConfig, idempotencyConfig);
+
+    if (!safetyCheck.ok) {
+      return {
+        requestedStake: order.stake,
+        filledStake: 0,
+        remainingStake: order.stake,
+        status: 'blocked_by_safety_gate',
+        errorCode: 'SAFETY_VIOLATION',
+        errorMessage: safetyCheck.reasons.join('; '),
+        raw: { mode: 'live', violations: safetyCheck.reasons }
+      };
+    }
+  }
+
+  // Paper mode and live mode (after safety check) continue with retry logic
   const retryConfig = getExecutionRetryConfig(context.config || {});
   const policy = buildRetryPolicy(retryConfig);
 
@@ -130,6 +176,8 @@ async function executeWithRetry(order, context) {
       sentAt: new Date().toISOString()
     };
 
+    // For paper mode, use simulator (no real send)
+    // For live mode, use simulator if provided, otherwise would be real send
     const result = context.simulator ?
       context.simulator(executionRequest, context.simOptions || {}) :
       { status: 'rejected', error: 'No simulator available' };
