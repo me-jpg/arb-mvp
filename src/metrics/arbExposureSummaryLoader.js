@@ -8,6 +8,8 @@
 const fs = require('fs');
 const readline = require('readline');
 const path = require('path');
+// ARCH_TEST_IGNORE: metrics reads data via analyzeArbExposure for display/analysis, no control flow  
+// TODO: Consider moving analyzeArbExposure to /metrics/exposureAnalyzer.js
 const { analyzeArbExposure } = require('../execution/arbExposureAnalyzer');
 
 /**

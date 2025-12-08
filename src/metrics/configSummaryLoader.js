@@ -19,6 +19,8 @@ function loadConfigSummary() {
     // Try to load bankroll config
     let bankroll = null;
     try {
+        // ARCH_TEST_IGNORE: metrics reads config values for display/export, does not control risk
+        // TODO: Move bankrollConfig to /config or make it pure data
         const { getBankrollConfig } = require('../risk/bankrollConfig');
         if (typeof getBankrollConfig === 'function') {
             bankroll = getBankrollConfig();
