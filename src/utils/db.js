@@ -63,13 +63,13 @@ async function insertOddsSnapshots(snapshots) {
   try {
     const values = [];
     const placeholders = [];
-    
+
     snapshots.forEach((snapshot, idx) => {
       const offset = idx * 8;
       placeholders.push(
         `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8})`
       );
-      
+
       values.push(
         snapshot.eventId,
         snapshot.book,
@@ -109,13 +109,13 @@ async function insertLineChanges(changes) {
   try {
     const values = [];
     const placeholders = [];
-    
+
     changes.forEach((change, idx) => {
       const offset = idx * 10;
       placeholders.push(
         `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10})`
       );
-      
+
       values.push(
         change.eventId,
         change.book,
@@ -157,13 +157,13 @@ async function insertArbitrageOpportunities(opportunities) {
   try {
     const values = [];
     const placeholders = [];
-    
+
     opportunities.forEach((opp, idx) => {
       const offset = idx * 14;
       placeholders.push(
         `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11}, $${offset + 12}, $${offset + 13}, $${offset + 14})`
       );
-      
+
       values.push(
         opp.eventId,
         opp.marketType,
@@ -209,6 +209,184 @@ async function query(sql, params = []) {
   return pool.query(sql, params);
 }
 
+// ============================================
+// API QUERY FUNCTIONS
+// ============================================
+
+/**
+ * Get latest odds for a specific sport across all books
+ * Returns odds from the last 5 minutes
+ */
+async function getLatestOdds(sport) {
+  if (!pool) {
+    return [];
+  }
+
+  try {
+    const result = await pool.query(`
+      SELECT 
+        os.book,
+        os.event_id,
+        e.sport,
+        e.home_team,
+        e.away_team,
+        e.start_time,
+        os.market_type,
+        os.side,
+        os.line,
+        os.price,
+        os.created_at as timestamp
+      FROM odds_snapshots os
+      JOIN events e ON os.event_id = e.event_id
+      WHERE LOWER(e.sport) = LOWER($1)
+      AND os.created_at > NOW() - INTERVAL '5 minutes'
+      ORDER BY os.created_at DESC, os.book ASC
+      LIMIT 500
+    `, [sport]);
+
+    return result.rows;
+  } catch (error) {
+    console.error('Error in getLatestOdds:', error.message);
+    return [];
+  }
+}
+
+/**
+ * Get line movement history for a specific event
+ * Returns movements from last 24 hours
+ */
+async function getLineMovements(eventId) {
+  if (!pool) {
+    return [];
+  }
+
+  try {
+    const result = await pool.query(`
+      SELECT 
+        event_id,
+        book,
+        market_type,
+        side,
+        old_line,
+        new_line,
+        old_price,
+        new_price,
+        change_type,
+        created_at as timestamp
+      FROM line_changes 
+      WHERE event_id = $1 
+      AND created_at > NOW() - INTERVAL '24 hours'
+      ORDER BY created_at ASC
+    `, [eventId]);
+
+    return result.rows;
+  } catch (error) {
+    console.error('Error in getLineMovements:', error.message);
+    return [];
+  }
+}
+
+/**
+ * Get latency metrics per book from last hour
+ */
+async function getLatencyMetrics() {
+  if (!pool) {
+    return [];
+  }
+
+  try {
+    const result = await pool.query(`
+      SELECT 
+        book,
+        COUNT(*) as sample_count,
+        COUNT(DISTINCT event_id) as events_tracked,
+        MAX(created_at) as last_updated
+      FROM line_changes
+      WHERE created_at > NOW() - INTERVAL '1 hour'
+      GROUP BY book
+      ORDER BY sample_count DESC
+    `);
+
+    return result.rows;
+  } catch (error) {
+    console.error('Error in getLatencyMetrics:', error.message);
+    return [];
+  }
+}
+
+/**
+ * Get tracked events
+ */
+async function getEvents(sport = null, limit = 50) {
+  if (!pool) {
+    return [];
+  }
+
+  try {
+    let sql = `
+      SELECT 
+        event_id,
+        sport,
+        home_team,
+        away_team,
+        start_time,
+        created_at,
+        updated_at
+      FROM events
+    `;
+
+    const params = [];
+    if (sport) {
+      sql += ` WHERE LOWER(sport) = LOWER($1)`;
+      params.push(sport);
+    }
+
+    sql += ` ORDER BY start_time DESC LIMIT ${parseInt(limit)}`;
+
+    const result = await pool.query(sql, params);
+    return result.rows;
+  } catch (error) {
+    console.error('Error in getEvents:', error.message);
+    return [];
+  }
+}
+
+/**
+ * Get detected edges/arbitrages
+ */
+async function getEdges(minEdge = 0, limit = 100) {
+  if (!pool) {
+    return [];
+  }
+
+  try {
+    const result = await pool.query(`
+      SELECT 
+        ed.event_id,
+        ed.market_type,
+        ed.line,
+        ed.book_a,
+        ed.book_b,
+        ed.edge_percent,
+        ed.is_arbitrage,
+        ed.created_at as timestamp,
+        e.home_team,
+        e.away_team,
+        e.sport
+      FROM edges ed
+      JOIN events e ON ed.event_id = e.event_id
+      WHERE ABS(ed.edge_percent) >= $1
+      ORDER BY ed.created_at DESC
+      LIMIT $2
+    `, [minEdge, limit]);
+
+    return result.rows;
+  } catch (error) {
+    console.error('Error in getEdges:', error.message);
+    return [];
+  }
+}
+
 module.exports = {
   connect,
   close,
@@ -216,6 +394,12 @@ module.exports = {
   insertLineChanges,
   insertArbitrageOpportunities,
   query,
+  // API functions
+  getLatestOdds,
+  getLineMovements,
+  getLatencyMetrics,
+  getEvents,
+  getEdges,
   get connected() {
     return pool !== null;
   }
