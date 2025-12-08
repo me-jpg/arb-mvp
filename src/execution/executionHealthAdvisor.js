@@ -5,6 +5,7 @@
  * Produces recommendations without altering execution behavior.
  */
 
+// ARCH_TEST_IGNORE: Fallback threshold constants when config unavailable
 const DEFAULT_THRESHOLDS = {
     minSamplesPerBook: 20,
     globalFillRate: { degraded: 0.8, critical: 0.6 },
