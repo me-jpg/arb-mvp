@@ -7,7 +7,8 @@ const { simulateExecution } = require('./simulatedExchange');
 const { logExecutionEvent } = require('./executionLogger');
 const { updateExposure } = require('../risk/riskState');
 const { buildRetryPolicy, shouldRetryExecution, computeNextBackoffMs } = require('./executionRetryPolicy');
-const { getExecutionRetryConfig } = require('../../config');
+const { getExecutionRetryConfig, getExecutionIdempotencyConfig } = require('../config');
+const { buildIdempotencyKey, shouldBlockDuplicate } = require('./executionIdempotency');
 
 /**
  * Sleep utility for retry delays.
@@ -190,9 +191,38 @@ async function executeArbitrageBatch(arbSignals, config = {}) {
   }
 
   const results = [];
+  const idempotencyConfig = getExecutionIdempotencyConfig(config);
 
   for (const signal of arbSignals) {
     try {
+      // Build order context for idempotency check
+      const orderContext = {
+        eventId: signal.eventId || signal.id,
+        book: signal.book,
+        marketType: signal.marketType || signal.type,
+        side: signal.side,
+        price: signal.price,
+        stake: signal.stake || signal.suggestedStake || 100
+      };
+
+      // Check for duplicate (if recentExecutions provided in config.recentExecutions)
+      const recentExecutions = config.recentExecutions || [];
+      const isBlocked = shouldBlockDuplicate(orderContext, recentExecutions, idempotencyConfig);
+
+      if (isBlocked) {
+        // Log duplicate block
+        const idempotencyKey = buildIdempotencyKey(orderContext);
+        console.log('[executionEngine] Blocked duplicate order:', { idempotencyKey, signal: signal.id });
+
+        results.push({
+          signalId: signal.id,
+          status: 'blocked_duplicate',
+          reason: 'idempotency_duplicate_order',
+          idempotencyKey
+        });
+        continue;
+      }
+
       // Assuming executeSingleArbitrage is defined elsewhere or imported
       const result = await executeSingleArbitrage(signal, config);
       results.push(result);
