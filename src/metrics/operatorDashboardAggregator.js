@@ -6,7 +6,8 @@
  */
 
 const { createArbResultsBuffer, addArbResult, getRecentArbResults } = require('./arbResultsBuffer');
-const { getArbResultsBufferConfig } = require('../../config');
+const { getArbResultsBufferConfig, getLatencyHealthConfig } = require('../../config');
+const { classifyLatency } = require('./latencyHealthClassifier');
 
 // Single in-memory buffer instance at module scope
 const arbResultsBuffer = createArbResultsBuffer(getArbResultsBufferConfig());

@@ -385,6 +385,51 @@ function getLatencyMetricsConfig(config = CONFIG) {
   };
 }
 
+/**
+ * Get latency health configuration with defaults and clamping.
+ * @param {Object} config - Full config object
+ * @returns {Object} Latency health config
+ */
+function getLatencyHealthConfig(config = CONFIG) {
+  const healthCfg = (config && config.latencyHealth) || {};
+  const perBookCfg = healthCfg.perBook || {};
+  const globalCfg = healthCfg.global || {};
+
+  // Per-book thresholds with clamping
+  let degradedAvgLagMs = typeof perBookCfg.degradedAvgLagMs === 'number' ? perBookCfg.degradedAvgLagMs : 150;
+  let degradedP95LagMs = typeof perBookCfg.degradedP95LagMs === 'number' ? perBookCfg.degradedP95LagMs : 300;
+  let severeAvgLagMs = typeof perBookCfg.severeAvgLagMs === 'number' ? perBookCfg.severeAvgLagMs : 300;
+  let severeP95LagMs = typeof perBookCfg.severeP95LagMs === 'number' ? perBookCfg.severeP95LagMs : 600;
+  let minSamples = typeof perBookCfg.minSamples === 'number' ? perBookCfg.minSamples : 20;
+
+  // Global thresholds with clamping
+  let degradedFractionSlowBooks = typeof globalCfg.degradedFractionSlowBooks === 'number' ? globalCfg.degradedFractionSlowBooks : 0.3;
+  let severeFractionSlowBooks = typeof globalCfg.severeFractionSlowBooks === 'number' ? globalCfg.severeFractionSlowBooks : 0.6;
+
+  // Clamp to sane limits
+  degradedAvgLagMs = Math.min(Math.max(degradedAvgLagMs, 1), 5000);
+  degradedP95LagMs = Math.min(Math.max(degradedP95LagMs, 1), 5000);
+  severeAvgLagMs = Math.min(Math.max(severeAvgLagMs, 1), 5000);
+  severeP95LagMs = Math.min(Math.max(severeP95LagMs, 1), 5000);
+  minSamples = Math.min(Math.max(minSamples, 1), 1000);
+  degradedFractionSlowBooks = Math.min(Math.max(degradedFractionSlowBooks, 0), 1);
+  severeFractionSlowBooks = Math.min(Math.max(severeFractionSlowBooks, 0), 1);
+
+  return {
+    perBook: {
+      degradedAvgLagMs,
+      degradedP95LagMs,
+      severeAvgLagMs,
+      severeP95LagMs,
+      minSamples
+    },
+    global: {
+      degradedFractionSlowBooks,
+      severeFractionSlowBooks
+    }
+  };
+}
+
 module.exports = {
   ...CONFIG,
   getStakeSizingConfig,
@@ -399,5 +444,6 @@ module.exports = {
   DEFAULT_EXECUTION_PROFILES,
   getExecutionProfileConfig,
   getArbResultsBufferConfig,
-  getLatencyMetricsConfig
+  getLatencyMetricsConfig,
+  getLatencyHealthConfig
 };
