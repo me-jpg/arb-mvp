@@ -20,6 +20,7 @@ const { normalizeExecutionResult, mergePartialFill } = require('./executionResul
 const { orchestrateArbExecution } = require('./arbExecutionOrchestrator');
 const { resolveExecutionMode, validateLiveSafety } = require('./executionModeGuard');
 const { executeHedgingPlan } = require('./arbHedgeExecutor');
+const { evaluateArbLatency } = require('./latencyAwareArbGuard');
 
 /**
  * Sleep utility for retry delays.
@@ -308,6 +309,32 @@ async function executeArbitrageBatch(arbSignals, config = {}) {
 async function executeArbPlan(arbPlan, engineContext) {
   const config = (engineContext && engineContext.config) || {};
 
+  // Latency guard: evaluate before execution
+  const { getExecutionLatencyGuardConfig } = require('../config');
+  const latencyConfig = getExecutionLatencyGuardConfig(config);
+  const latencyDecision = evaluateArbLatency(arbPlan, latencyConfig, Date.now());
+
+  if (latencyDecision.shouldSkip) {
+    // Skip arb due to latency violations
+    return {
+      arbId: arbPlan.id,
+      strategy: 'sequential_conservative',
+      legs: arbPlan.legs.map(leg => ({
+        legId: leg.legId || leg.orderId,
+        book: leg.book,
+        requestedStake: leg.stake,
+        filledStake: 0,
+        remainingStake: leg.stake,
+        status: 'skipped_latency',
+        errorCode: null,
+        errorMessage: null
+      })),
+      overallStatus: 'skipped',
+      notes: ['latency_guard_blocked', ...latencyDecision.reasons],
+      latencyMetrics: latencyDecision.metrics
+    };
+  }
+
   const context = {
     config,
     recentExecutions: (engineContext && engineContext.recentExecutions) || [],
@@ -355,15 +382,19 @@ async function executeArbPlan(arbPlan, engineContext) {
       engineContext
     );
 
-    // Attach hedge execution results
+    // Attach hedge execution results + latency metrics
     return {
       ...arbResult,
-      hedgeExecutionResult
+      hedgeExecutionResult,
+      latencyMetrics: latencyDecision.metrics
     };
   }
 
-  // Default: return arb result (compute-only or no hedges)
-  return arbResult;
+  // Default: return arb result (compute-only or no hedges) + latency metrics
+  return {
+    ...arbResult,
+    latencyMetrics: latencyDecision.metrics
+  };
 }
 
 module.exports = {

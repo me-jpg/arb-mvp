@@ -249,6 +249,22 @@ function getExecutionModeConfig(config = CONFIG) {
   };
 }
 
+/**
+ * Get execution latency guard configuration with defaults.
+ * @param {Object} config - Full config object
+ * @returns {Object} Latency guard config with defaults
+ */
+function getExecutionLatencyGuardConfig(config = CONFIG) {
+  const execCfg = (config && config.execution) || {};
+  const lg = execCfg.latencyGuard || {};
+  return {
+    enabled: !!lg.enabled,
+    maxLegAgeMs: typeof lg.maxLegAgeMs === 'number' ? lg.maxLegAgeMs : 2000,
+    maxSkewBetweenLegsMs: typeof lg.maxSkewBetweenLegsMs === 'number' ? lg.maxSkewBetweenLegsMs : 1500,
+    action: lg.action || 'skip'
+  };
+}
+
 module.exports = {
   ...CONFIG,
   getStakeSizingConfig,
