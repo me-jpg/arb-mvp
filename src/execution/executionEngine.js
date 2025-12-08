@@ -19,6 +19,7 @@ const { buildIdempotencyKey, shouldBlockDuplicate } = require('./executionIdempo
 const { normalizeExecutionResult, mergePartialFill } = require('./executionResultNormalizer');
 const { orchestrateArbExecution } = require('./arbExecutionOrchestrator');
 const { resolveExecutionMode, validateLiveSafety } = require('./executionModeGuard');
+const { executeHedgingPlan } = require('./arbHedgeExecutor');
 
 /**
  * Sleep utility for retry delays.

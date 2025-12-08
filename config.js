@@ -66,7 +66,8 @@ const CONFIG = {
     hedging: {
       enabled: false,                  // default: no hedging (backward compatible)
       mode: 'flatten_exposure',        // v1 only
-      maxHedgeFraction: 1.0            // hedge up to 100% of filledStake
+      maxHedgeFraction: 1.0,           // hedge up to 100% of filledStake
+      executeHedges: false             // default: compute-only, no execution
     },
     mode: 'simulation',  // 'simulation' | 'paper' | 'live' - default to simulation for safety
     safety: {
@@ -219,7 +220,8 @@ function getExecutionHedgingConfig(config = CONFIG) {
   return {
     enabled: !!h.enabled,
     mode: h.mode || 'flatten_exposure',
-    maxHedgeFraction: typeof h.maxHedgeFraction === 'number' ? h.maxHedgeFraction : 1.0
+    maxHedgeFraction: typeof h.maxHedgeFraction === 'number' ? h.maxHedgeFraction : 1.0,
+    executeHedges: !!h.executeHedges
   };
 }
 
