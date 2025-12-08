@@ -7,9 +7,10 @@ const { simulateExecution } = require('./simulatedExchange');
 const { logExecutionEvent } = require('./executionLogger');
 const { updateExposure } = require('../risk/riskState');
 const { buildRetryPolicy, shouldRetryExecution, computeNextBackoffMs } = require('./executionRetryPolicy');
-const { getExecutionRetryConfig, getExecutionIdempotencyConfig } = require('../config');
+const { getExecutionRetryConfig, getExecutionIdempotencyConfig, getArbExecutionConfig } = require('../config');
 const { buildIdempotencyKey, shouldBlockDuplicate } = require('./executionIdempotency');
 const { normalizeExecutionResult, mergePartialFill } = require('./executionResultNormalizer');
+const { orchestrateArbExecution } = require('./arbExecutionOrchestrator');
 
 /**
  * Sleep utility for retry delays.
@@ -249,7 +250,46 @@ async function executeArbitrageBatch(arbSignals, config = {}) {
   return { status: 'completed', results };
 }
 
+/**
+ * Execute multi-leg arbitrage plan.
+ * @param {Object} arbPlan - Arbitrage plan with legs
+ * @param {Object} engineContext - Engine context
+ * @returns {Promise<Object>} Orchestration result
+ */
+async function executeArbPlan(arbPlan, engineContext) {
+  const config = (engineContext && engineContext.config) || {};
+
+  const context = {
+    config,
+    recentExecutions: (engineContext && engineContext.recentExecutions) || [],
+    executeSingleLegFn: async (leg, perLegContext) => {
+      // Reuse existing single-leg execution path with retry + idempotency + normalization
+      const order = {
+        orderId: leg.legId || `leg_${leg.book}_${leg.eventId}`,
+        stake: leg.stake,
+        book: leg.book,
+        eventId: leg.eventId,
+        marketType: leg.marketType,
+        side: leg.side,
+        price: leg.price
+      };
+
+      // Use executeWithRetry which already includes normalization
+      const legContext = {
+        config: perLegContext.config,
+        simulator: engineContext.simulator,
+        simOptions: engineContext.simOptions
+      };
+
+      return await executeWithRetry(order, legContext);
+    }
+  };
+
+  return orchestrateArbExecution(arbPlan, context);
+}
+
 module.exports = {
   runExecutionSimulation,
-  executeArbitrageBatch
+  executeArbitrageBatch,
+  executeArbPlan
 };

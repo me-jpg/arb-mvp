@@ -58,6 +58,10 @@ const CONFIG = {
     idempotency: {
       enabled: true,
       lookbackWindowMs: 5 * 60 * 1000 // 5 minutes
+    },
+    arbExecution: {
+      strategy: 'sequential_conservative',
+      maxLegsPerArb: 4
     }
   },
 
@@ -179,11 +183,26 @@ function getExecutionIdempotencyConfig(config = CONFIG) {
   };
 }
 
+/**
+ * Get arb execution configuration with defaults.
+ * @param {Object} config - Full config object
+ * @returns {Object} Arb execution config with defaults
+ */
+function getArbExecutionConfig(config = CONFIG) {
+  const execCfg = (config && config.execution) || {};
+  const arbCfg = execCfg.arbExecution || {};
+  return {
+    strategy: arbCfg.strategy || 'sequential_conservative',
+    maxLegsPerArb: typeof arbCfg.maxLegsPerArb === 'number' ? arbCfg.maxLegsPerArb : 4
+  };
+}
+
 module.exports = {
   ...CONFIG,
   getStakeSizingConfig,
   getExecutionHealthAdvisoryMode,
   getExecutionRiskConfig,
   getExecutionRetryConfig,
-  getExecutionIdempotencyConfig
+  getExecutionIdempotencyConfig,
+  getArbExecutionConfig
 };
