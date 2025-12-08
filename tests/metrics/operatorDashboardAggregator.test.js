@@ -101,7 +101,7 @@ console.log('=== Operator Dashboard Aggregator Tests ===\\n');
  * Test: Health advisories - last hour
  */
 {
-    const now Ms = Date.now();
+    const nowMs = Date.now();
     const recentHealthAdvisories = [
         { timestamp: new Date(nowMs - 30 * 60 * 1000).toISOString(), level: 'ok' },          // 30 min ago
         { timestamp: new Date(nowMs - 90 * 60 * 1000).toISOString(), level: 'degraded' },   // 90 min ago (outside window)
