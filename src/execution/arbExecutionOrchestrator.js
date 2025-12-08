@@ -5,7 +5,8 @@
  * Pure orchestration logic with dependency injection.
  */
 
-const { getArbExecutionConfig } = require('../../config');
+const { getArbExecutionConfig, getExecutionHedgingConfig } = require('../../config');
+const { computeHedgeForBrokenArb } = require('./arbHedgingStrategy');
 
 /**
  * Orchestrate multi-leg arbitrage execution.
@@ -91,13 +92,34 @@ async function orchestrateArbExecution(arbPlan, context) {
         overallStatus = 'failed';
     }
 
-    return {
+    // Compute hedging plan if enabled and arb is broken
+    const hedgingConfig = getExecutionHedgingConfig(context.config);
+    let hedgingPlan = null;
+
+    if (hedgingConfig.enabled && overallStatus === 'partial') {
+        const hasFailure = legResults.some(leg =>
+            leg.status === 'rejected' || leg.status === 'error'
+        );
+
+        if (hasFailure) {
+            hedgingPlan = computeHedgeForBrokenArb(arbPlan, legResults, hedgingConfig);
+        }
+    }
+
+    const result = {
         arbId: arbPlan.id,
         strategy: arbConfig.strategy,
         legs: legResults,
         overallStatus,
         notes
     };
+
+    // Attach hedging plan if computed
+    if (hedgingPlan) {
+        result.hedgingPlan = hedgingPlan;
+    }
+
+    return result;
 }
 
 module.exports = {

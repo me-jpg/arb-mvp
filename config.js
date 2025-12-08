@@ -62,6 +62,11 @@ const CONFIG = {
     arbExecution: {
       strategy: 'sequential_conservative',
       maxLegsPerArb: 4
+    },
+    hedging: {
+      enabled: false,                  // default: no hedging (backward compatible)
+      mode: 'flatten_exposure',        // v1 only
+      maxHedgeFraction: 1.0            // hedge up to 100% of filledStake
     }
   },
 
@@ -197,6 +202,21 @@ function getArbExecutionConfig(config = CONFIG) {
   };
 }
 
+/**
+ * Get execution hedging configuration with defaults.
+ * @param {Object} config - Full config object
+ * @returns {Object} Hedging config with defaults
+ */
+function getExecutionHedgingConfig(config = CONFIG) {
+  const execCfg = (config && config.execution) || {};
+  const h = execCfg.hedging || {};
+  return {
+    enabled: !!h.enabled,
+    mode: h.mode || 'flatten_exposure',
+    maxHedgeFraction: typeof h.maxHedgeFraction === 'number' ? h.maxHedgeFraction : 1.0
+  };
+}
+
 module.exports = {
   ...CONFIG,
   getStakeSizingConfig,
@@ -204,5 +224,6 @@ module.exports = {
   getExecutionRiskConfig,
   getExecutionRetryConfig,
   getExecutionIdempotencyConfig,
-  getArbExecutionConfig
+  getArbExecutionConfig,
+  getExecutionHedgingConfig
 };
