@@ -50,8 +50,9 @@ function extractImports(filePath) {
 
     lines.forEach((line, index) => {
         // Check if ARCH_TEST_IGNORE is in the few lines before this one
+        // Lookback of 5 to handle multi-line destructuring imports
         let hasIgnoreAnnotation = false;
-        for (let lookback = Math.max(0, index - 3); lookback < index; lookback++) {
+        for (let lookback = Math.max(0, index - 5); lookback < index; lookback++) {
             if (lines[lookback].includes('ARCH_TEST_IGNORE')) {
                 hasIgnoreAnnotation = true;
                 break;
