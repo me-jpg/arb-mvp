@@ -5,7 +5,7 @@
  * Pure orchestration logic with dependency injection.
  */
 
-const { getArbExecutionConfig } = require('../config');
+const { getArbExecutionConfig } = require('../../config');
 
 /**
  * Orchestrate multi-leg arbitrage execution.
