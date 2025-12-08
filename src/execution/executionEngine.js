@@ -9,6 +9,7 @@ const { updateExposure } = require('../risk/riskState');
 const { buildRetryPolicy, shouldRetryExecution, computeNextBackoffMs } = require('./executionRetryPolicy');
 const { getExecutionRetryConfig, getExecutionIdempotencyConfig } = require('../config');
 const { buildIdempotencyKey, shouldBlockDuplicate } = require('./executionIdempotency');
+const { normalizeExecutionResult, mergePartialFill } = require('./executionResultNormalizer');
 
 /**
  * Sleep utility for retry delays.
@@ -118,6 +119,7 @@ async function executeWithRetry(order, context) {
 
   let attempt = 1;
   let lastResult = null;
+  let aggregate = null;  // Aggregate partial fills across attempts
 
   while (true) {
     // Execute single attempt (this is already a simulation)
@@ -133,12 +135,20 @@ async function executeWithRetry(order, context) {
 
     lastResult = result;
 
-    // Success - return immediately
-    if (result && (result.status === 'filled' || result.status === 'partial')) {
-      return result;
+    // Normalize result into consistent model
+    const normalized = normalizeExecutionResult(result, order);
+
+    // Aggregate with previous attempts (for partial fills)
+    aggregate = aggregate
+      ? mergePartialFill(aggregate, normalized)
+      : normalized;
+
+    // Check if order fully filled
+    if (aggregate.status === 'filled') {
+      return aggregate;
     }
 
-    // Determine retry eligibility
+    // Determine retry eligibility (use raw result for retry logic)
     const shouldRetry = shouldRetryExecution({
       attemptNumber: attempt,
       errorCode: result && result.error,
@@ -147,8 +157,8 @@ async function executeWithRetry(order, context) {
     });
 
     if (!shouldRetry) {
-      // No more retries
-      return lastResult;
+      // No more retries - return aggregated result
+      return aggregate;
     }
 
     // Calculate backoff delay
