@@ -6,6 +6,17 @@ const { evaluatePlannedOrder } = require('./riskGuard');
 const { simulateExecution } = require('./simulatedExchange');
 const { logExecutionEvent } = require('./executionLogger');
 const { updateExposure } = require('../risk/riskState');
+const { buildRetryPolicy, shouldRetryExecution, computeNextBackoffMs } = require('./executionRetryPolicy');
+const { getExecutionRetryConfig } = require('../../config');
+
+/**
+ * Sleep utility for retry delays.
+ * @param {number} ms - Milliseconds to sleep
+ * @returns {Promise<void>}
+ */
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 const {
   computeFillQuality,
@@ -92,6 +103,66 @@ function runExecutionSimulation(signals = [], options = {}) {
   }
 
   return summary;
+}
+
+/**
+ * Execute a single order with retry logic.
+ * @param {Object} order - Order to execute
+ *@param {Object} context - Execution context
+ * @returns {Promise<Object>} Execution result
+ */
+async function executeWithRetry(order, context) {
+  const retryConfig = getExecutionRetryConfig(context.config || {});
+  const policy = buildRetryPolicy(retryConfig);
+
+  let attempt = 1;
+  let lastResult = null;
+
+  while (true) {
+    // Execute single attempt (this is already a simulation)
+    const executionRequest = {
+      requestId: `req_${order.orderId}_attempt_${attempt}`,
+      plannedOrder: order,
+      sentAt: new Date().toISOString()
+    };
+
+    const result = context.simulator ?
+      context.simulator(executionRequest, context.simOptions || {}) :
+      { status: 'rejected', error: 'No simulator available' };
+
+    lastResult = result;
+
+    // Success - return immediately
+    if (result && (result.status === 'filled' || result.status === 'partial')) {
+      return result;
+    }
+
+    // Determine retry eligibility
+    const shouldRetry = shouldRetryExecution({
+      attemptNumber: attempt,
+      errorCode: result && result.error,
+      failureReason: result && result.status,
+      policy
+    });
+
+    if (!shouldRetry) {
+      // No more retries
+      return lastResult;
+    }
+
+    // Calculate backoff delay
+    const nextAttempt = attempt + 1;
+    const delayMs = computeNextBackoffMs({
+      attemptNumber: nextAttempt,
+      policy
+    });
+
+    if (delayMs > 0) {
+      await sleep(delayMs);
+    }
+
+    attempt = nextAttempt;
+  }
 }
 
 async function executeArbitrageBatch(arbSignals, config = {}) {
