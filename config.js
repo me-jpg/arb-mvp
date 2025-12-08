@@ -339,6 +339,28 @@ function getExecutionProfileConfig(baseConfig, profileName) {
   return Object.assign({}, cfg, { execution: mergedExecution });
 }
 
+/**
+ * Get arb results buffer configuration with defaults.
+ * @param {Object} config - Full config object
+ * @returns {Object} Buffer config with defaults
+ */
+function getArbResultsBufferConfig(config = CONFIG) {
+  const dashCfg = (config && config.dashboard) || {};
+  const bufCfg = dashCfg.arbResultsBuffer || {};
+
+  let maxSize = typeof bufCfg.maxSize === 'number' ? bufCfg.maxSize : 200;
+  let windowSeconds = typeof bufCfg.windowSeconds === 'number' ? bufCfg.windowSeconds : 300;
+
+  // Clamp to sane limits
+  maxSize = Math.min(Math.max(maxSize, 10), 1000);
+  windowSeconds = Math.max(windowSeconds, 60);
+
+  return {
+    maxSize,
+    windowMs: windowSeconds * 1000
+  };
+}
+
 module.exports = {
   ...CONFIG,
   getStakeSizingConfig,
@@ -351,5 +373,6 @@ module.exports = {
   getExecutionModeConfig,
   getExecutionLatencyGuardConfig,
   DEFAULT_EXECUTION_PROFILES,
-  getExecutionProfileConfig
+  getExecutionProfileConfig,
+  getArbResultsBufferConfig
 };
