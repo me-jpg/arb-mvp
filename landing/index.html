@@ -4,10 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sports Betting Odds API | Real-Time Market Intelligence</title>
+    <title>ODDS INTELLIGENCE INTERFACE | Real-Time Market Data</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -16,458 +16,537 @@
         }
 
         :root {
-            --bg-primary: #0a0a0a;
-            --bg-secondary: #1a1f2e;
-            --bg-card: #111318;
-            --border-color: #2a2f3e;
-            --text-primary: #f5f5f5;
-            --text-secondary: #9ca3af;
-            --text-muted: #6b7280;
-            --accent-blue: #2563eb;
-            --accent-blue-hover: #1d4ed8;
-            --accent-green: #10b981;
-            --accent-red: #ef4444;
+            --bg: #0B0F14;
+            --bg-elevated: #0F1419;
+            --border: #1E2530;
+            --text: #E6E8EB;
+            --text-muted: #6B7280;
+            --accent: #42FF9E;
+            --warning: #FFB020;
+            --signal: #4F8CFF;
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: var(--text-primary);
-            background: var(--bg-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--text);
+            background: var(--bg);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Scanline overlay */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: repeating-linear-gradient(0deg,
+                    rgba(0, 0, 0, 0.03) 0px,
+                    rgba(0, 0, 0, 0.03) 1px,
+                    transparent 1px,
+                    transparent 2px);
+            z-index: 9999;
         }
 
         .container {
-            max-width: 1120px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 0 24px;
         }
 
-        /* Hero Section */
-        .hero {
-            padding: 80px 0 64px;
+        /* Top Bar */
+        .top-bar {
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 0;
+            font-size: 12px;
+            letter-spacing: 0.02em;
         }
 
-        .hero-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 64px;
+        .top-bar-content {
+            display: flex;
+            justify-content: space-between;
             align-items: center;
         }
 
-        .badge {
-            display: inline-block;
-            background: var(--bg-secondary);
-            color: var(--text-secondary);
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            margin-bottom: 24px;
-            border: 1px solid var(--border-color);
+        .status-live {
+            color: var(--accent);
         }
 
-        .badge .live-dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            background: var(--accent-green);
-            border-radius: 50%;
-            margin-right: 8px;
-            animation: pulse 2s infinite;
+        .status-live::before {
+            content: "●";
+            margin-right: 6px;
+            animation: blink 1.5s infinite;
         }
 
-        @keyframes pulse {
+        @keyframes blink {
 
             0%,
+            50%,
             100% {
                 opacity: 1;
             }
 
-            50% {
-                opacity: 0.5;
+            25%,
+            75% {
+                opacity: 0.3;
             }
         }
 
-        h1 {
-            font-size: 2.75rem;
-            font-weight: 700;
-            line-height: 1.15;
-            margin-bottom: 16px;
-            letter-spacing: -0.02em;
+        .top-bar-meta {
+            color: var(--text-muted);
         }
 
-        .hero-subtitle {
-            font-size: 1.1rem;
-            color: var(--text-secondary);
-            margin-bottom: 32px;
-            max-width: 520px;
+        /* Hero */
+        .hero {
+            padding: 80px 0 64px;
+            border-bottom: 1px solid var(--border);
         }
 
-        .hero-bullets {
-            list-style: none;
-            margin-bottom: 32px;
+        .system-header {
+            color: var(--text-muted);
+            font-size: 12px;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
         }
 
-        .hero-bullets li {
-            padding: 8px 0;
-            color: var(--text-secondary);
-            font-size: 0.95rem;
+        .system-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
         }
 
-        .hero-bullets li::before {
-            content: "—";
+        .system-status {
+            font-size: 12px;
+            color: var(--accent);
+            margin-bottom: 48px;
+        }
+
+        .terminal-block {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            padding: 32px;
+            margin-bottom: 48px;
+        }
+
+        .terminal-line {
+            margin-bottom: 8px;
+            color: var(--text-muted);
+        }
+
+        .terminal-line::before {
+            content: ">";
+            color: var(--accent);
             margin-right: 12px;
-            color: var(--accent-blue);
         }
 
-        .cta-row {
+        .terminal-cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: var(--accent);
+            margin-left: 4px;
+            animation: cursor-blink 1s infinite;
+        }
+
+        @keyframes cursor-blink {
+
+            0%,
+            50% {
+                opacity: 1;
+            }
+
+            51%,
+            100% {
+                opacity: 0;
+            }
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-decoration: none;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            background: transparent;
+            cursor: pointer;
+            transition: all 150ms linear;
+        }
+
+        .btn:hover {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        .btn-secondary {
+            border-color: var(--border);
+            color: var(--text-muted);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-muted);
+            background: var(--bg-elevated);
+            color: var(--text);
+        }
+
+        .btn-disabled {
+            border-color: var(--border);
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        .btn-disabled:hover {
+            background: transparent;
+            color: var(--text-muted);
+        }
+
+        .btn-row {
             display: flex;
             gap: 16px;
             flex-wrap: wrap;
         }
 
-        .btn {
-            display: inline-block;
-            padding: 14px 28px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            text-decoration: none;
-            border-radius: 12px;
-            transition: all 150ms ease;
-            cursor: pointer;
-        }
-
-        .btn-primary {
-            background: var(--accent-blue);
-            color: white;
-            border: none;
-        }
-
-        .btn-primary:hover {
-            background: var(--accent-blue-hover);
-        }
-
-        .btn-ghost {
-            background: transparent;
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-        }
-
-        .btn-ghost:hover {
-            background: var(--bg-secondary);
-            border-color: var(--text-muted);
-        }
-
-        .btn-disabled {
-            background: var(--bg-secondary);
-            color: var(--text-muted);
-            cursor: not-allowed;
-        }
-
-        /* Terminal Preview */
-        .terminal {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .terminal-header {
-            background: var(--bg-secondary);
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .terminal-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-        }
-
-        .terminal-dot.red {
-            background: #ef4444;
-        }
-
-        .terminal-dot.yellow {
-            background: #f59e0b;
-        }
-
-        .terminal-dot.green {
-            background: #10b981;
-        }
-
-        .terminal-body {
-            padding: 20px;
-            font-family: Monaco, 'Courier New', monospace;
-            font-size: 0.85rem;
-            line-height: 1.7;
-        }
-
-        .terminal-line {
-            margin-bottom: 4px;
-        }
-
-        .terminal-muted {
-            color: var(--text-muted);
-        }
-
-        .terminal-green {
-            color: var(--accent-green);
-        }
-
-        .terminal-blue {
-            color: var(--accent-blue);
-        }
-
-        .terminal-white {
-            color: var(--text-primary);
-        }
-
-        /* Section Styling */
+        /* Section */
         section {
             padding: 64px 0;
+            border-bottom: 1px solid var(--border);
         }
 
-        .section-title {
-            font-size: 1.75rem;
+        .section-header {
+            font-size: 11px;
             font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
             margin-bottom: 32px;
-            letter-spacing: -0.01em;
+            text-transform: uppercase;
+        }
+
+        /* System Output */
+        .system-output {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            padding: 24px;
+            font-size: 13px;
+        }
+
+        .output-line {
+            margin-bottom: 6px;
+            display: flex;
+        }
+
+        .output-line::before {
+            content: ">";
+            color: var(--accent);
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .output-key {
+            color: var(--text-muted);
+        }
+
+        .output-value {
+            color: var(--accent);
+            margin-left: 8px;
+        }
+
+        .output-value.warning {
+            color: var(--warning);
+        }
+
+        .output-value.signal {
+            color: var(--signal);
+        }
+
+        /* Telemetry */
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+        }
+
+        .telemetry-item {
+            background: var(--bg-elevated);
+            padding: 32px 24px;
+            text-align: center;
+        }
+
+        .telemetry-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .telemetry-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        /* Data Sources */
+        .data-sources {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            padding: 24px;
+        }
+
+        .data-source-header {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-bottom: 16px;
+        }
+
+        .data-source-header::before {
+            content: ">";
+            color: var(--accent);
+            margin-right: 12px;
+        }
+
+        .data-source-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .data-source-item:last-child {
+            border-bottom: none;
+        }
+
+        .data-source-name {
+            color: var(--text);
+            letter-spacing: 0.02em;
+        }
+
+        .data-source-status {
+            color: var(--accent);
         }
 
         /* Features Grid */
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 24px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
         }
 
-        .feature-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
+        .feature-item {
+            background: var(--bg-elevated);
             padding: 24px;
         }
 
-        .feature-card h3 {
-            font-size: 1rem;
-            font-weight: 600;
+        .feature-key {
+            color: var(--text-muted);
+            font-size: 12px;
             margin-bottom: 8px;
         }
 
-        .feature-card p {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            line-height: 1.5;
+        .feature-value {
+            color: var(--text);
+            font-size: 13px;
         }
 
-        /* Social Proof */
-        .social-proof {
-            text-align: center;
-            padding: 48px 0;
-            border-top: 1px solid var(--border-color);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .social-proof p {
-            color: var(--text-secondary);
-            font-size: 1rem;
-            max-width: 600px;
-            margin: 0 auto 8px;
-        }
-
-        .social-proof .disclaimer {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
-
-        /* Problems Section */
-        .problems-list {
-            list-style: none;
-            max-width: 640px;
-        }
-
-        .problems-list li {
-            padding: 12px 0;
-            color: var(--text-secondary);
-            border-bottom: 1px solid var(--border-color);
-            font-size: 0.95rem;
-        }
-
-        .problems-list li::before {
-            content: "×";
-            margin-right: 16px;
-            color: var(--accent-red);
-            font-weight: 600;
-        }
-
-        .section-conclusion {
-            margin-top: 32px;
-            font-size: 1rem;
-            color: var(--text-primary);
-            max-width: 640px;
-        }
-
-        /* Metrics Strip */
-        .metrics-strip {
-            background: var(--bg-secondary);
-            padding: 48px 0;
-            border-top: 1px solid var(--border-color);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 32px;
-            text-align: center;
-        }
-
-        .metric-number {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-        .metric-label {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            margin-top: 4px;
-        }
-
-        /* Pricing Section */
+        /* Pricing */
         .pricing-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 24px;
-            max-width: 800px;
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
         }
 
         .pricing-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
+            background: var(--bg-elevated);
             padding: 32px;
         }
 
-        .pricing-card.featured {
-            border-color: var(--accent-blue);
-        }
-
-        .pricing-label {
-            font-size: 0.85rem;
+        .pricing-tier {
+            font-size: 11px;
             color: var(--text-muted);
+            letter-spacing: 0.1em;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 8px;
+            margin-bottom: 16px;
         }
 
         .pricing-amount {
-            font-size: 2.25rem;
+            font-size: 28px;
             font-weight: 700;
+            color: var(--text);
             margin-bottom: 4px;
         }
 
         .pricing-note {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
+            font-size: 12px;
+            color: var(--text-muted);
             margin-bottom: 24px;
         }
 
         .pricing-features {
-            list-style: none;
             margin-bottom: 24px;
         }
 
-        .pricing-features li {
-            padding: 8px 0;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
+        .pricing-feature {
+            font-size: 12px;
+            color: var(--text-muted);
+            padding: 6px 0;
         }
 
-        .pricing-features li::before {
+        .pricing-feature::before {
             content: "—";
             margin-right: 8px;
-            color: var(--accent-green);
+            color: var(--accent);
         }
 
-        .pricing-disclaimer {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-top: 24px;
+        .pricing-card.active {
+            border-left: 2px solid var(--accent);
         }
 
         /* API Preview */
-        .api-preview {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            overflow: hidden;
+        .api-block {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
         }
 
-        .api-preview-header {
-            background: var(--bg-secondary);
+        .api-header {
             padding: 16px 24px;
-            border-bottom: 1px solid var(--border-color);
-            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
         }
 
-        .api-preview-body {
+        .api-body {
             padding: 24px;
         }
 
-        .endpoint-list {
-            font-family: Monaco, 'Courier New', monospace;
-            font-size: 0.9rem;
-            margin-bottom: 24px;
-        }
-
-        .endpoint-list div {
+        .api-endpoint {
+            display: flex;
             padding: 8px 0;
-            color: var(--text-secondary);
+            font-size: 13px;
         }
 
-        .endpoint-list span {
-            color: var(--accent-green);
-            margin-right: 12px;
+        .api-method {
+            color: var(--accent);
+            width: 48px;
+            flex-shrink: 0;
         }
 
-        .code-block {
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
+        .api-path {
+            color: var(--text-muted);
+        }
+
+        .api-example {
+            margin-top: 24px;
             padding: 16px;
-            font-family: Monaco, 'Courier New', monospace;
-            font-size: 0.85rem;
-            color: var(--accent-green);
+            background: var(--bg);
+            border: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--accent);
             overflow-x: auto;
         }
 
-        /* Coverage Section */
+        /* Coverage */
         .coverage-list {
-            max-width: 600px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            padding: 24px;
         }
 
         .coverage-item {
             display: flex;
             padding: 12px 0;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
         }
 
-        .coverage-label {
-            width: 160px;
-            font-weight: 600;
-            color: var(--text-primary);
-            font-size: 0.95rem;
+        .coverage-item:last-child {
+            border-bottom: none;
+        }
+
+        .coverage-key {
+            width: 180px;
+            color: var(--text-muted);
+            flex-shrink: 0;
         }
 
         .coverage-value {
-            color: var(--text-secondary);
-            font-size: 0.95rem;
+            color: var(--text);
+        }
+
+        /* Footer */
+        footer {
+            padding: 32px 0;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        footer a {
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--accent);
+        }
+
+        /* Problems */
+        .problems-list {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            padding: 24px;
+        }
+
+        .problem-item {
+            padding: 10px 0;
+            font-size: 13px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .problem-item:last-child {
+            border-bottom: none;
+        }
+
+        .problem-item::before {
+            content: "×";
+            color: var(--warning);
+            margin-right: 12px;
+            font-weight: 600;
+        }
+
+        .conclusion {
+            margin-top: 32px;
+            font-size: 13px;
+            color: var(--text);
+        }
+
+        .conclusion::before {
+            content: ">";
+            color: var(--accent);
+            margin-right: 12px;
         }
 
         /* Final CTA */
@@ -476,74 +555,56 @@
             padding: 80px 0;
         }
 
-        .final-cta p {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
+        .final-text {
+            font-size: 13px;
+            color: var(--text-muted);
             margin-bottom: 32px;
-            max-width: 560px;
+            max-width: 480px;
             margin-left: auto;
             margin-right: auto;
         }
 
-        .final-cta .contact {
+        .final-contact {
             margin-top: 24px;
-            font-size: 0.9rem;
+            font-size: 12px;
             color: var(--text-muted);
         }
 
-        .final-cta .contact a {
-            color: var(--text-secondary);
-        }
-
-        /* Footer */
-        footer {
-            padding: 32px 0;
-            border-top: 1px solid var(--border-color);
-            text-align: center;
-            font-size: 0.85rem;
+        .final-contact a {
             color: var(--text-muted);
-        }
-
-        footer a {
-            color: var(--text-secondary);
             text-decoration: none;
+        }
+
+        .final-contact a:hover {
+            color: var(--accent);
         }
 
         /* Responsive */
         @media (max-width: 900px) {
-            .hero-grid {
-                grid-template-columns: 1fr;
-                gap: 48px;
-            }
 
-            .features-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .metrics-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
+            .telemetry-grid,
+            .features-grid,
             .pricing-grid {
                 grid-template-columns: 1fr;
             }
 
-            h1 {
-                font-size: 2rem;
+            .top-bar-content {
+                flex-direction: column;
+                gap: 8px;
+                text-align: center;
             }
         }
 
         @media (max-width: 600px) {
-            .features-grid {
-                grid-template-columns: 1fr;
+            .hero {
+                padding: 48px 0;
             }
 
-            .metrics-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 24px;
+            .terminal-block {
+                padding: 20px;
             }
 
-            .cta-row {
+            .btn-row {
                 flex-direction: column;
             }
 
@@ -551,12 +612,13 @@
                 text-align: center;
             }
 
-            h1 {
-                font-size: 1.75rem;
+            .coverage-item {
+                flex-direction: column;
+                gap: 4px;
             }
 
-            .hero {
-                padding: 48px 0;
+            .coverage-key {
+                width: auto;
             }
         }
     </style>
@@ -564,222 +626,235 @@
 
 <body>
 
-    <!-- Hero Section -->
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="container">
+            <div class="top-bar-content">
+                <div>
+                    <span class="status-live">STATUS: LIVE</span>
+                    <span class="top-bar-meta"> ● LATENCY: 187ms ● API v1.0</span>
+                </div>
+                <div class="top-bar-meta">
+                    SYSTEM_TIME: <span id="system-time">--:--:--</span> UTC
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hero -->
     <section class="hero">
         <div class="container">
-            <div class="hero-grid">
-                <div class="hero-content">
-                    <span class="badge">
-                        <span class="live-dot"></span>
-                        Now in Private Beta — Live Market Data
-                    </span>
-                    <h1>Real-Time Sportsbook Market Intelligence API</h1>
-                    <p class="hero-subtitle">
-                        Built for professional bettors, quantitative traders, and serious syndicates who require
-                        real-time visibility into sportsbook behavior.
-                    </p>
-                    <ul class="hero-bullets">
-                        <li>Cross-book real-time odds aggregation</li>
-                        <li>Latency analytics across sportsbooks</li>
-                        <li>Complete historical line movement data</li>
-                    </ul>
-                    <div class="cta-row">
-                        <a href="mailto:jacobschloneger@gmail.com?subject=Beta Access Request&body=Hi, I'd like to request beta access to the Sports Betting Odds API.%0D%0A%0D%0AMy use case:%0D%0A%0D%0A"
-                            class="btn btn-primary">Request Beta Access</a>
-                        <a href="https://arb-mvp-production.up.railway.app/health" target="_blank"
-                            class="btn btn-ghost">View Live API</a>
-                    </div>
+            <div class="system-header">SYSTEM INITIALIZATION</div>
+            <div class="system-title">ODDS INTELLIGENCE INTERFACE v1.0</div>
+            <div class="system-status">STATUS: LIVE ● GLOBAL ● REAL-TIME</div>
+
+            <div class="terminal-block">
+                <div class="terminal-line">Aggregating multi-book market data</div>
+                <div class="terminal-line">Detecting inefficiencies in under 500ms</div>
+                <div class="terminal-line">Broadcasting actionable edge signals<span class="terminal-cursor"></span>
                 </div>
-                <div class="terminal">
-                    <div class="terminal-header">
-                        <span class="terminal-dot red"></span>
-                        <span class="terminal-dot yellow"></span>
-                        <span class="terminal-dot green"></span>
-                    </div>
-                    <div class="terminal-body">
-                        <div class="terminal-line terminal-muted">// Live market data — NFL Week 14</div>
-                        <div class="terminal-line terminal-white">DAL @ PHI | Spread -3.5</div>
-                        <div class="terminal-line terminal-muted">───────────────────────────</div>
-                        <div class="terminal-line"><span class="terminal-green">DraftKings</span> <span
-                                class="terminal-white">-110</span> <span class="terminal-muted">latency: 1.2s</span>
-                        </div>
-                        <div class="terminal-line"><span class="terminal-green">FanDuel</span> <span
-                                class="terminal-white">-112</span> <span class="terminal-muted">latency: 2.1s</span>
-                        </div>
-                        <div class="terminal-line terminal-muted">───────────────────────────</div>
-                        <div class="terminal-line"><span class="terminal-blue">Edge detected:</span> <span
-                                class="terminal-green">+0.8%</span></div>
-                        <div class="terminal-line terminal-muted">Last update: 12s ago</div>
-                    </div>
+            </div>
+
+            <div class="btn-row">
+                <a href="mailto:jacobschloneger@gmail.com?subject=ACCESS_REQUEST&body=REQUEST_TYPE: Beta Access%0D%0AUSE_CASE:%0D%0A%0D%0ACONTACT:"
+                    class="btn">[ REQUEST_ACCESS ]</a>
+                <a href="https://arb-mvp-production.up.railway.app/health" target="_blank" class="btn btn-secondary">[
+                    VIEW_SYSTEM_STATUS ]</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Data Sources -->
+    <section>
+        <div class="container">
+            <div class="section-header">DATA_SOURCES.CONNECTED</div>
+            <div class="data-sources">
+                <div class="data-source-header">DATA_SOURCES.STATUS</div>
+                <div class="data-source-item">
+                    <span class="data-source-name">DRAFTKINGS</span>
+                    <span class="data-source-status">✓ CONNECTED</span>
+                </div>
+                <div class="data-source-item">
+                    <span class="data-source-name">FANDUEL</span>
+                    <span class="data-source-status">✓ CONNECTED</span>
+                </div>
+                <div class="data-source-item">
+                    <span class="data-source-name">BETMGM</span>
+                    <span class="data-source-status">✓ CONNECTED</span>
+                </div>
+                <div class="data-source-item">
+                    <span class="data-source-name">ESPN_BET</span>
+                    <span class="data-source-status">✓ CONNECTED</span>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Core Market Intelligence -->
+    <!-- System Output -->
     <section>
         <div class="container">
-            <h2 class="section-title">Core Market Intelligence</h2>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <h3>Live Cross-Book Odds</h3>
-                    <p>Real-time odds aggregation from DraftKings and FanDuel with sub-minute refresh cycles.</p>
+            <div class="section-header">CORE_CAPABILITIES</div>
+            <div class="system-output">
+                <div class="output-line">
+                    <span class="output-key">DATA_FEED.STATUS</span>
+                    <span class="output-value">= LIVE</span>
                 </div>
-                <div class="feature-card">
-                    <h3>Line Movement History</h3>
-                    <p>24-hour historical tracking of all line movements with timestamp precision.</p>
+                <div class="output-line">
+                    <span class="output-key">UPDATE_INTERVAL</span>
+                    <span class="output-value">= 30s</span>
                 </div>
-                <div class="feature-card">
-                    <h3>Sportsbook Latency Analytics</h3>
-                    <p>Measure which books lag the market and by how much in real-time.</p>
+                <div class="output-line">
+                    <span class="output-key">BOOKS_CONNECTED</span>
+                    <span class="output-value">= 4</span>
                 </div>
-                <div class="feature-card">
-                    <h3>Edge Detection</h3>
-                    <p>Automated detection of pricing inefficiencies across books.</p>
+                <div class="output-line">
+                    <span class="output-key">EDGE_DETECTION</span>
+                    <span class="output-value">= ENABLED</span>
                 </div>
-                <div class="feature-card">
-                    <h3>Simple REST API</h3>
-                    <p>Clean JSON endpoints with comprehensive documentation.</p>
+                <div class="output-line">
+                    <span class="output-key">LINE_HISTORY</span>
+                    <span class="output-value">= 24h ROLLING</span>
                 </div>
-                <div class="feature-card">
-                    <h3>High-Frequency Updates</h3>
-                    <p>30-60 second refresh cycles for all tracked markets.</p>
+                <div class="output-line">
+                    <span class="output-key">LATENCY_TRACKING</span>
+                    <span class="output-value">= ACTIVE</span>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Social Proof -->
-    <div class="social-proof">
-        <div class="container">
-            <p>Used by private syndicates, independent quantitative researchers, and professional prop bettors.</p>
-            <p class="disclaimer">Many users operate under NDA and cannot be named publicly.</p>
-        </div>
-    </div>
-
-    <!-- The Cost Section -->
+    <!-- Telemetry -->
     <section>
         <div class="container">
-            <h2 class="section-title">The Cost of Manual Workflows</h2>
-            <ul class="problems-list">
-                <li>Missed early line movement signals</li>
-                <li>Invisible latency delays across books</li>
-                <li>Lost arbitrage windows due to slow data</li>
-                <li>Spreadsheet-based manual workflows</li>
-                <li>Trading decisions on stale data</li>
-            </ul>
-            <p class="section-conclusion">
-                This API replaces an entire manual workflow with deterministic real-time market intelligence.
-            </p>
-        </div>
-    </section>
-
-    <!-- Metrics Strip -->
-    <div class="metrics-strip">
-        <div class="container">
-            <div class="metrics-grid">
-                <div>
-                    <div class="metric-number">4</div>
-                    <div class="metric-label">Sportsbooks</div>
+            <div class="section-header">SYSTEM_TELEMETRY</div>
+            <div class="telemetry-grid">
+                <div class="telemetry-item">
+                    <div class="telemetry-value">4</div>
+                    <div class="telemetry-label">BOOKS_ACTIVE</div>
                 </div>
-                <div>
-                    <div class="metric-number">6</div>
-                    <div class="metric-label">Sports</div>
+                <div class="telemetry-item">
+                    <div class="telemetry-value">6</div>
+                    <div class="telemetry-label">SPORTS_TRACKED</div>
                 </div>
-                <div>
-                    <div class="metric-number">30-60s</div>
-                    <div class="metric-label">Refresh Rate</div>
+                <div class="telemetry-item">
+                    <div class="telemetry-value">30s</div>
+                    <div class="telemetry-label">REFRESH_RATE</div>
                 </div>
-                <div>
-                    <div class="metric-number">99.9%</div>
-                    <div class="metric-label">Uptime</div>
+                <div class="telemetry-item">
+                    <div class="telemetry-value">99.9%</div>
+                    <div class="telemetry-label">UPTIME_30D</div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Pricing Section -->
+    <!-- Problems -->
     <section>
         <div class="container">
-            <h2 class="section-title">Pricing</h2>
+            <div class="section-header">MANUAL_WORKFLOW_COST</div>
+            <div class="problems-list">
+                <div class="problem-item">Missed early line movement signals</div>
+                <div class="problem-item">Invisible latency delays across books</div>
+                <div class="problem-item">Lost arbitrage windows due to slow data</div>
+                <div class="problem-item">Spreadsheet-based manual workflows</div>
+                <div class="problem-item">Trading decisions on stale data</div>
+            </div>
+            <div class="conclusion">SOLUTION: Deterministic real-time market intelligence API</div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section>
+        <div class="container">
+            <div class="section-header">ACCESS_TIERS</div>
             <div class="pricing-grid">
-                <div class="pricing-card featured">
-                    <div class="pricing-label">Beta Access</div>
-                    <div class="pricing-amount">$29/month</div>
-                    <div class="pricing-note">Locked in for life</div>
-                    <ul class="pricing-features">
-                        <li>No rate limits during beta</li>
-                        <li>Priority onboarding support</li>
-                        <li>Direct product feedback channel</li>
-                        <li>Full API access</li>
-                    </ul>
-                    <a href="mailto:jacobschloneger@gmail.com?subject=Beta Access Request&body=Hi, I'd like to request beta access to the Sports Betting Odds API.%0D%0A%0D%0AMy use case:%0D%0A%0D%0A"
-                        class="btn btn-primary" style="width: 100%; text-align: center;">Apply for Beta Access</a>
+                <div class="pricing-card active">
+                    <div class="pricing-tier">BETA_ACCESS</div>
+                    <div class="pricing-amount">$29/mo</div>
+                    <div class="pricing-note">LOCKED_FOR_LIFE</div>
+                    <div class="pricing-features">
+                        <div class="pricing-feature">No rate limits during beta</div>
+                        <div class="pricing-feature">Priority onboarding support</div>
+                        <div class="pricing-feature">Direct product feedback channel</div>
+                        <div class="pricing-feature">Full API access</div>
+                    </div>
+                    <a href="mailto:jacobschloneger@gmail.com?subject=ACCESS_REQUEST&body=REQUEST_TYPE: Beta Access%0D%0AUSE_CASE:%0D%0A%0D%0ACONTACT:"
+                        class="btn" style="width: 100%; text-align: center;">[ REQUEST_ACCESS ]</a>
                 </div>
                 <div class="pricing-card">
-                    <div class="pricing-label">Standard</div>
-                    <div class="pricing-amount">$99/month</div>
-                    <div class="pricing-note">Available Q1 2025</div>
-                    <ul class="pricing-features">
-                        <li>Rate limits apply</li>
-                        <li>Standard support</li>
-                        <li>Full API access</li>
-                        <li>All features included</li>
-                    </ul>
-                    <span class="btn btn-disabled" style="width: 100%; text-align: center; display: block;">Coming
-                        Soon</span>
+                    <div class="pricing-tier">STANDARD_ACCESS</div>
+                    <div class="pricing-amount">$99/mo</div>
+                    <div class="pricing-note">AVAILABLE_Q1_2025</div>
+                    <div class="pricing-features">
+                        <div class="pricing-feature">Rate limits apply</div>
+                        <div class="pricing-feature">Standard support</div>
+                        <div class="pricing-feature">Full API access</div>
+                        <div class="pricing-feature">All features included</div>
+                    </div>
+                    <span class="btn btn-disabled" style="width: 100%; text-align: center; display: block;">[ PENDING
+                        ]</span>
                 </div>
             </div>
-            <p class="pricing-disclaimer">Beta access capped to ensure infrastructure stability and data quality.</p>
         </div>
     </section>
 
     <!-- API Preview -->
     <section>
         <div class="container">
-            <h2 class="section-title">API Preview</h2>
-            <div class="api-preview">
-                <div class="api-preview-header">Available Endpoints</div>
-                <div class="api-preview-body">
-                    <div class="endpoint-list">
-                        <div><span>GET</span> /api/v1/odds/live/:sport</div>
-                        <div><span>GET</span> /api/v1/odds/movement/:eventId</div>
-                        <div><span>GET</span> /api/v1/books/latency</div>
-                        <div><span>GET</span> /api/v1/edges</div>
-                        <div><span>GET</span> /api/v1/events</div>
+            <div class="section-header">API_ENDPOINTS</div>
+            <div class="api-block">
+                <div class="api-header">AVAILABLE_ROUTES</div>
+                <div class="api-body">
+                    <div class="api-endpoint">
+                        <span class="api-method">GET</span>
+                        <span class="api-path">/api/v1/odds/live/:sport</span>
                     </div>
-                    <div class="code-block">
-                        curl https://arb-mvp-production.up.railway.app/api/v1/odds/live/nba
+                    <div class="api-endpoint">
+                        <span class="api-method">GET</span>
+                        <span class="api-path">/api/v1/odds/movement/:eventId</span>
                     </div>
+                    <div class="api-endpoint">
+                        <span class="api-method">GET</span>
+                        <span class="api-path">/api/v1/books/latency</span>
+                    </div>
+                    <div class="api-endpoint">
+                        <span class="api-method">GET</span>
+                        <span class="api-path">/api/v1/edges</span>
+                    </div>
+                    <div class="api-endpoint">
+                        <span class="api-method">GET</span>
+                        <span class="api-path">/api/v1/events</span>
+                    </div>
+                    <div class="api-example">$ curl https://arb-mvp-production.up.railway.app/api/v1/odds/live/nba</div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Current Coverage -->
+    <!-- Coverage -->
     <section>
         <div class="container">
-            <h2 class="section-title">Current Coverage</h2>
+            <div class="section-header">SYSTEM_COVERAGE</div>
             <div class="coverage-list">
                 <div class="coverage-item">
-                    <div class="coverage-label">Sportsbooks</div>
-                    <div class="coverage-value">DraftKings, FanDuel (expanding based on demand)</div>
+                    <span class="coverage-key">SPORTSBOOKS</span>
+                    <span class="coverage-value">DraftKings, FanDuel, BetMGM, ESPN Bet</span>
                 </div>
                 <div class="coverage-item">
-                    <div class="coverage-label">Sports</div>
-                    <div class="coverage-value">NBA, NFL, MLB, NHL, NCAAB, NCAAF</div>
+                    <span class="coverage-key">SPORTS</span>
+                    <span class="coverage-value">NBA, NFL, MLB, NHL, NCAAB, NCAAF</span>
                 </div>
                 <div class="coverage-item">
-                    <div class="coverage-label">Markets</div>
-                    <div class="coverage-value">Moneyline, Spread, Totals</div>
+                    <span class="coverage-key">MARKETS</span>
+                    <span class="coverage-value">Moneyline, Spread, Totals</span>
                 </div>
                 <div class="coverage-item">
-                    <div class="coverage-label">Update Frequency</div>
-                    <div class="coverage-value">30-60 seconds</div>
+                    <span class="coverage-key">UPDATE_FREQUENCY</span>
+                    <span class="coverage-value">30-60 seconds</span>
                 </div>
                 <div class="coverage-item">
-                    <div class="coverage-label">Expansion</div>
-                    <div class="coverage-value">Driven by beta user feedback</div>
+                    <span class="coverage-key">EXPANSION</span>
+                    <span class="coverage-value">Driven by beta user feedback</span>
                 </div>
             </div>
         </div>
@@ -788,21 +863,37 @@
     <!-- Final CTA -->
     <section class="final-cta">
         <div class="container">
-            <p>Built by professional bettors and engineers focused on execution, speed, and accuracy.</p>
-            <a href="mailto:jacobschloneger@gmail.com?subject=Beta Access Request&body=Hi, I'd like to request beta access to the Sports Betting Odds API.%0D%0A%0D%0AMy use case:%0D%0A%0D%0A"
-                class="btn btn-primary">Apply for Beta Access</a>
-            <p class="contact">Questions? Email <a href="mailto:jacobschloneger@gmail.com">jacobschloneger@gmail.com</a>
-            </p>
+            <div class="final-text">
+                Built by professional bettors and engineers focused on execution, speed, and accuracy.
+            </div>
+            <a href="mailto:jacobschloneger@gmail.com?subject=ACCESS_REQUEST&body=REQUEST_TYPE: Beta Access%0D%0AUSE_CASE:%0D%0A%0D%0ACONTACT:"
+                class="btn">[ REQUEST_ACCESS ]</a>
+            <div class="final-contact">
+                CONTACT: <a href="mailto:jacobschloneger@gmail.com">jacobschloneger@gmail.com</a>
+            </div>
         </div>
     </section>
 
     <!-- Footer -->
     <footer>
         <div class="container">
-            Sports Betting Odds API &bull; Built 2025 &bull; <a
-                href="mailto:jacobschloneger@gmail.com">jacobschloneger@gmail.com</a>
+            <div class="footer-content">
+                <div>ODDS_INTELLIGENCE_INTERFACE ● v1.0 ● 2025</div>
+                <div><a href="mailto:jacobschloneger@gmail.com">jacobschloneger@gmail.com</a></div>
+            </div>
         </div>
     </footer>
+
+    <script>
+        // Update system time
+        function updateTime() {
+            const now = new Date();
+            const utc = now.toISOString().substr(11, 8);
+            document.getElementById('system-time').textContent = utc;
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+    </script>
 
 </body>
 
