@@ -67,6 +67,12 @@ const CONFIG = {
       enabled: false,                  // default: no hedging (backward compatible)
       mode: 'flatten_exposure',        // v1 only
       maxHedgeFraction: 1.0            // hedge up to 100% of filledStake
+    },
+    mode: 'simulation',  // 'simulation' | 'paper' | 'live' - default to simulation for safety
+    safety: {
+      requireHealthAdvisoryIgnoreOrLog: true,
+      requireIdempotencyEnabled: true,
+      requireRiskCapsEnabled: true
     }
   },
 
@@ -217,6 +223,24 @@ function getExecutionHedgingConfig(config = CONFIG) {
   };
 }
 
+/**
+ * Get execution mode configuration with defaults.
+ * @param {Object} config - Full config object
+ * @returns {Object} Mode config with defaults
+ */
+function getExecutionModeConfig(config = CONFIG) {
+  const execCfg = (config && config.execution) || {};
+  const safety = execCfg.safety || {};
+  return {
+    mode: execCfg.mode || 'simulation',
+    safety: {
+      requireHealthAdvisoryIgnoreOrLog: safety.requireHealthAdvisoryIgnoreOrLog !== false,
+      requireIdempotencyEnabled: safety.requireIdempotencyEnabled !== false,
+      requireRiskCapsEnabled: safety.requireRiskCapsEnabled !== false
+    }
+  };
+}
+
 module.exports = {
   ...CONFIG,
   getStakeSizingConfig,
@@ -225,5 +249,6 @@ module.exports = {
   getExecutionRetryConfig,
   getExecutionIdempotencyConfig,
   getArbExecutionConfig,
-  getExecutionHedgingConfig
+  getExecutionHedgingConfig,
+  getExecutionModeConfig
 };
