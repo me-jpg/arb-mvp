@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArbMVP Live Metrics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-900 text-gray-100">
+    <!-- Header -->
+    <header class="bg-gray-800 shadow-lg">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold text-blue-400">ArbMVP Live Metrics</h1>
+                <div class="flex items-center gap-2">
+                    <div id="status" class="px-3 py-1 rounded-full text-sm font-medium bg-gray-700 text-gray-400">
+                        Connecting...
+                    </div>
+                    <div id="lastUpdate" class="text-sm text-gray-500">
+                        Last update: Never
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- HF Top Volatile Markets Card -->
+            <div class="bg-gray-800 rounded-lg shadow-xl p-6">
+                <h2 class="text-xl font-bold text-blue-400 mb-4">🔥 HF Top Volatile Markets</h2>
+                <div id="hfMarketsContainer" class="overflow-x-auto">
+                    <p class="text-gray-500 text-sm">Waiting for data...</p>
+                </div>
+            </div>
+
+            <!-- Latency Anomalies Card -->
+            <div class="bg-gray-800 rounded-lg shadow-xl p-6">
+                <h2 class="text-xl font-bold text-red-400 mb-4">⚠️ Latency Anomalies</h2>
+                <div id="latencyAnomaliesContainer" class="overflow-x-auto">
+                    <p class="text-gray-500 text-sm">Waiting for data...</p>
+                </div>
+            </div>
+
+            <!-- Execution Summary Card -->
+            <div class="bg-gray-800 rounded-lg shadow-xl p-6">
+                <h2 class="text-xl font-bold text-green-400 mb-4">📊 Execution Summary</h2>
+                <div id="executionSummaryContainer">
+                    <p class="text-gray-500 text-sm">Waiting for data...</p>
+                </div>
+            </div>
+
+            <!-- Risk Summary Card -->
+            <div class="bg-gray-800 rounded-lg shadow-xl p-6">
+                <h2 class="text-xl font-bold text-purple-400 mb-4">🛡️ Risk Summary</h2>
+                <div id="riskSummaryContainer">
+                    <p class="text-gray-500 text-sm">Waiting for data...</p>
+                </div>
+            </div>
+
+            <!-- Research & Edge Quality Card -->
+            <div class="bg-gray-800 rounded-lg shadow-xl p-6 lg:col-span-2">
+                <h2 class="text-xl font-bold text-cyan-400 mb-4">🔬 Research & Edge Quality</h2>
+                <div id="researchContainer">
+                    <p class="text-gray-500 text-sm">Waiting for data...</p>
+                </div>
+            </div>
+
+            <!-- Arb Exposure & Hedge Quality Card -->
+            <div class="bg-gray-800 rounded-lg shadow-xl p-6 lg:col-span-2">
+                <h2 class="text-xl font-bold text-orange-400 mb-4">🔄 Arb Exposure & Hedge Quality</h2>
+                <div id="arbExposureContainer">
+                    <p class="text-gray-500 text-sm">Waiting for data...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- WebSocket Client Script -->
+    <script>
+        const WS_URL = 'ws://localhost:4090';
+        let ws = null;
+        let reconnectInterval = 3000;
+        let reconnectTimer = null;
+
+        // DOM elements
+        const statusEl = document.getElementById('status');
+        const lastUpdateEl = document.getElementById('lastUpdate');
+        const hfMarketsEl = document.getElementById('hfMarketsContainer');
+        const latencyAnomaliesEl = document.getElementById('latencyAnomaliesContainer');
+        const executionSummaryEl = document.getElementById('executionSummaryContainer');
+        const riskSummaryEl = document.getElementById('riskSummaryContainer');
+        const researchEl = document.getElementById('researchContainer');
+        const arbExposureEl = document.getElementById('arbExposureContainer');
+
+        function updateStatus(status, className) {
+            statusEl.textContent = status;
+            statusEl.className = `px-3 py-1 rounded-full text-sm font-medium ${className}`;
+        }
+
+        function formatTime(isoString) {
+            if (!isoString) return 'Unknown';
+            const date = new Date(isoString);
+            return date.toLocaleTimeString();
+        }
+
+        function updateHFMarkets(markets) {
+            if (!markets || markets.length === 0) {
+                hfMarketsEl.innerHTML = '<p class="text-gray-500 text-sm">No volatile markets detected</p>';
+                return;
+            }
+
+            const html = `
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-gray-400 border-b border-gray-700">
+                            <th class="text-left py-2">Event</th>
+                            <th class="text-left py-2">Market</th>
+                            <th class="text-right py-2">Volatility</th>
+                            <th class="text-right py-2">Moves</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${markets.slice(0, 10).map(m => `
+                            <tr class="border-b border-gray-700 hover:bg-gray-700">
+                                <td class="py-2 text-blue-300">${m.eventId || 'Unknown'}</td>
+                                <td class="py-2">${m.marketType || 'N/A'}</td>
+                                <td class="py-2 text-right font-mono text-yellow-400">${(m.volatilityScore || 0).toFixed(2)}</td>
+                                <td class="py-2 text-right font-mono">${m.totalMoves || 0}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            hfMarketsEl.innerHTML = html;
+        }
+
+        function updateLatencyAnomalies(anomalies) {
+            if (!anomalies || anomalies.length === 0) {
+                latencyAnomaliesEl.innerHTML = '<p class="text-gray-500 text-sm">No anomalies detected</p>';
+                return;
+            }
+
+            const html = `
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-gray-400 border-b border-gray-700">
+                            <th class="text-left py-2">Book</th>
+                            <th class="text-right py-2">Z-Score</th>
+                            <th class="text-right py-2">Lag</th>
+                            <th class="text-right py-2">Baseline</th>
+                            <th class="text-center py-2">Severity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${anomalies.slice(0, 20).map(a => {
+                const severityClass = a.severity === 'critical' ? 'bg-red-500' : 'bg-yellow-500';
+                const severityText = a.severity === 'critical' ? 'CRITICAL' : 'WARN';
+                return `
+                                <tr class="border-b border-gray-700 hover:bg-gray-700">
+                                    <td class="py-2 text-blue-300">${a.book || 'Unknown'}</td>
+                                    <td class="py-2 text-right font-mono text-red-400">${(a.zScore || 0).toFixed(1)}</td>
+                                    <td class="py-2 text-right font-mono">${Math.round(a.observedLagMs || 0)}ms</td>
+                                    <td class="py-2 text-right font-mono text-gray-400">${Math.round(a.baselineAvgLagMs || 0)}±${Math.round(a.baselineStdLagMs || 0)}ms</td>
+                                    <td class="py-2 text-center">
+                                        <span class="${severityClass} text-xs px-2 py-1 rounded font-bold">${severityText}</span>
+                                    </td>
+                                </tr>
+                            `;
+            }).join('')}
+                    </tbody>
+                </table>
+            `;
+            latencyAnomaliesEl.innerHTML = html;
+        }
+
+        function updateExecutionSummary(execution) {
+            if (!execution || execution.totalOrders === undefined) {
+                executionSummaryEl.innerHTML = '<p class="text-gray-500 text-sm">No execution data</p>';
+                return;
+            }
+
+            const fillRatePercent = (execution.fillRate * 100).toFixed(1);
+
+            let booksHtml = '';
+            if (execution.books && Object.keys(execution.books).length > 0) {
+                booksHtml = `
+                    <table class="w-full text-sm mt-4">
+                        <thead>
+                            <tr class="text-gray-400 border-b border-gray-700">
+                                <th class="text-left py-2">Book</th>
+                                <th class="text-right py-2">Count</th>
+                                <th class="text-right py-2">Filled</th>
+                                <th class="text-right py-2">Rejected</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Object.entries(execution.books).map(([book, stats]) => `
+                                <tr class="border-b border-gray-700">
+                                    <td class="py-2 text-blue-300">${book}</td>
+                                    <td class="py-2 text-right font-mono">${stats.count}</td>
+                                    <td class="py-2 text-right font-mono text-green-400">${stats.filled}</td>
+                                    <td class="py-2 text-right font-mono text-red-400">${stats.rejected}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            const html = `
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                    <div>
+                        <div class="text-gray-400 text-xs">Total Orders</div>
+                        <div class="text-2xl font-bold">${execution.totalOrders}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-xs">Filled</div>
+                        <div class="text-2xl font-bold text-green-400">${execution.filled}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-xs">Rejected</div>
+                        <div class="text-2xl font-bold text-red-400">${execution.rejected}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-xs">Blocked</div>
+                        <div class="text-2xl font-bold text-yellow-400">${execution.blocked}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-xs">Fill Rate</div>
+                        <div class="text-2xl font-bold text-blue-400">${fillRatePercent}%</div>
+                    </div>
+                </div>
+                ${booksHtml}
+            `;
+            executionSummaryEl.innerHTML = html;
+        }
+
+        function updateRiskSummary(risk) {
+            if (!risk) {
+                riskSummaryEl.innerHTML = '<p class="text-gray-500 text-sm">No risk data</p>';
+                return;
+            }
+
+            let exposureByBookHtml = '';
+            if (risk.exposureByBook && Object.keys(risk.exposureByBook).length > 0) {
+                exposureByBookHtml = `
+                    <div class="mt-4">
+                        <div class="text-sm text-gray-400 mb-2">Exposure by Book:</div>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            ${Object.entries(risk.exposureByBook).slice(0, 6).map(([book, exposure]) => `
+                                <div class="bg-gray-700 rounded px-3 py-2">
+                                    <div class="text-xs text-gray-400">${book}</div>
+                                    <div class="font-mono text-sm">${typeof exposure === 'number' ? '$' + exposure.toFixed(0) : 'N/A'}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            const html = `
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <div class="text-gray-400 text-xs">Bankroll</div>
+                        <div class="text-2xl font-bold text-green-400">${risk.bankroll !== null ? '$' + risk.bankroll.toFixed(0) : 'N/A'}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-xs">Total Exposure</div>
+                        <div class="text-2xl font-bold text-yellow-400">${risk.exposureTotal !== null ? '$' + risk.exposureTotal.toFixed(0) : 'N/A'}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-xs">Current Day P/L</div>
+                        <div class="text-2xl font-bold ${risk.currentDayLoss !== null && risk.currentDayLoss < 0 ? 'text-red-400' : 'text-green-400'}">
+                            ${risk.currentDayLoss !== null ? '$' + risk.currentDayLoss.toFixed(0) : 'N/A'}
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-xs">Mode</div>
+                        <div class="text-xl font-bold text-purple-400">${risk.mode || 'N/A'}</div>
+                    </div>
+                </div>
+                ${exposureByBookHtml}
+            `;
+            riskSummaryEl.innerHTML = html;
+        }
+
+        function updateResearchSummary(research) {
+            if (!research || research.rowCount === 0) {
+                researchEl.innerHTML = '<p class="text-gray-500 text-sm">No research dataset available. Run <code>npm run research:pipeline</code>.</p>';
+                return;
+            }
+
+            let topBooksHtml = '';
+            if (research.topBooks && research.topBooks.length > 0) {
+                topBooksHtml = `
+                    <div class="mt-4">
+                        <div class="text-sm text-gray-400 mb-2">Top Books by ROI:</div>
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-gray-400 border-b border-gray-700">
+                                    <th class="text-left py-2">Book</th>
+                                    <th class="text-right py-2">ROI</th>
+                                    <th class="text-right py-2">Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${research.topBooks.map(b => `
+                                    <tr class="border-b border-gray-700">
+                                        <td class="py-2 text-blue-300">${b.book}</td>
+                                        <td class="py-2 text-right font-mono ${b.roi >= 0 ? 'text-green-400' : 'text-red-400'}">${(b.roi * 100).toFixed(1)}%</td>
+                                        <td class="py-2 text-right font-mono">${b.count}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            let topStrategiesHtml = '';
+            if (research.topStrategies && research.topStrategies.length > 0) {
+                topStrategiesHtml = `
+                    <div class="mt-4">
+                        <div class="text-sm text-gray-400 mb-2">Top Strategies by ROI:</div>
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-gray-400 border-b border-gray-700">
+                                    <th class="text-left py-2">Strategy</th>
+                                    <th class="text-right py-2">ROI</th>
+                                    <th class="text-right py-2">Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${research.topStrategies.map(s => `
+                                    <tr class="border-b border-gray-700">
+                                        <td class="py-2 text-blue-300">${s.strategyId}</td>
+                                        <td class="py-2 text-right font-mono ${s.roi >= 0 ? 'text-green-400' : 'text-red-400'}">${(s.roi * 100).toFixed(1)}%</td>
+                                        <td class="py-2 text-right font-mono">${s.count}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            let mlBaselineHtml = '';
+            if (research.mlBaseline) {
+                mlBaselineHtml = `
+                    <div class="mt-4 bg-gray-700 rounded p-3">
+                        <div class="text-sm text-gray-400 mb-2">ML Baseline:</div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <div class="text-xs text-gray-400">Edge Direction Accuracy</div>
+                                <div class="text-xl font-bold text-cyan-400">${(research.mlBaseline.edgeDirectionAccuracy * 100).toFixed(1)}%</div>
+                            </div>
+                            <div>
+                                <div class="text-xs text-gray-400">Examples</div>
+                                <div class="text-xl font-bold">${research.mlBaseline.count}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const html = `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <div class="text-gray-400 text-xs">Dataset Rows</div>
+                        <div class="text-2xl font-bold text-cyan-400">${research.rowCount}</div>
+                    </div>
+                </div>
+                ${topBooksHtml}
+                ${topStrategiesHtml}
+                ${mlBaselineHtml}
+            `;
+            researchEl.innerHTML = html;
+        }
+
+        function updateArbExposure(arbExposure) {
+            if (!arbExposure || arbExposure.pairs === 0) {
+                arbExposureEl.innerHTML = '<p class="text-gray-500 text-sm">No arb exposure data yet. Run execution sims / paper sessions.</p>';
+                return;
+            }
+
+            let byBookHtml = '';
+            if (arbExposure.byBook && arbExposure.byBook.length > 0) {
+                byBookHtml = `
+                    <div class="mt-4">
+                        <div class="text-sm text-gray-400 mb-2">By Book:</div>
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-gray-400 border-b border-gray-700">
+                                    <th class="text-left py-2">Book</th>
+                                    <th class="text-right py-2">Unhedged Pairs</th>
+                                    <th class="text-right py-2">Unhedged Exposure</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${arbExposure.byBook.map(b => `
+                                    <tr class="border-b border-gray-700">
+                                        <td class="py-2 text-blue-300">${b.book}</td>
+                                        <td class="py-2 text-right font-mono">${b.unhedgedPairs}</td>
+                                        <td class="py-2 text-right font-mono text-red-400">$${b.unhedgedExposure.toFixed(2)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            let worstUnhedgedHtml = '';
+            if (arbExposure.worstUnhedged && arbExposure.worstUnhedged.length > 0) {
+                worstUnhedgedHtml = `
+                    <div class="mt-4">
+                        <div class="text-sm text-gray-400 mb-2">Worst Unhedged (top 5):</div>
+                        <div class="space-y-2">
+                            ${arbExposure.worstUnhedged.slice(0, 5).map(item => `
+                                <div class="bg-gray-700 rounded p-2 text-xs">
+                                    <div class="flex justify-between">
+                                        <span class="text-blue-300">${item.eventId || item.groupId}</span>
+                                        <span class="text-red-400 font-bold">$${item.exposure.toFixed(2)}</span>
+                                    </div>
+                                    <div class="text-gray-400">${item.marketType} | Books: ${item.books.join(', ')}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            const html = `
+                <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-4">
+                    <div>
+                        <div class="text-gray-400 text-xs">Groups</div>
+                        <div class="text-xl font-bold">${arbExposure.groups}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-xs">Pairs</div>
+                        <div class="text-xl font-bold">${arbExposure.pairs}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-xs">Fully Hedged</div>
+                        <div class="text-xl font-bold text-green-400">${arbExposure.fullyHedged}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-xs">Unhedged</div>
+                        <div class="text-xl font-bold text-red-400">${arbExposure.unhedgedSingleLeg}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-xs">No Fill</div>
+                        <div class="text-xl font-bold text-gray-500">${arbExposure.noFill}</div>
+                    </div>
+                    <div>
+                        <div class="text-gray-400 text-xs">Total Exposure</div>
+                        <div class="text-xl font-bold text-orange-400">$${arbExposure.totalUnhedgedExposure.toFixed(2)}</div>
+                    </div>
+                </div>
+                ${byBookHtml}
+                ${worstUnhedgedHtml}
+            `;
+            arbExposureEl.innerHTML = html;
+        }
+
+        function handleMessage(data) {
+            try {
+                const payload = JSON.parse(data);
+
+                // Update HF markets
+                if (payload.hf && payload.hf.topVolatileMarkets) {
+                    updateHFMarkets(payload.hf.topVolatileMarkets);
+                }
+
+                // Update latency anomalies
+                if (payload.latency && payload.latency.anomalies) {
+                    updateLatencyAnomalies(payload.latency.anomalies);
+                }
+
+                // Update execution summary
+                if (payload.execution) {
+                    updateExecutionSummary(payload.execution);
+                }
+
+                // Update risk summary
+                if (payload.risk) {
+                    updateRiskSummary(payload.risk);
+                }
+
+                // Update research summary
+                if (payload.research) {
+                    updateResearchSummary(payload.research);
+                }
+
+                // Update arb exposure
+                if (payload.arbExposure) {
+                    updateArbExposure(payload.arbExposure);
+                }
+
+                // Update last update time
+                lastUpdateEl.textContent = `Last update: ${formatTime(payload.ts)}`;
+
+            } catch (err) {
+                console.error('Failed to parse message:', err);
+            }
+        }
+
+        function connect() {
+            if (ws) {
+                ws.close();
+            }
+
+            updateStatus('Connecting...', 'bg-yellow-500 text-yellow-900');
+
+            ws = new WebSocket(WS_URL);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                updateStatus('Connected', 'bg-green-500 text-green-900');
+                if (reconnectTimer) {
+                    clearTimeout(reconnectTimer);
+                    reconnectTimer = null;
+                }
+            };
+
+            ws.onmessage = (event) => {
+                handleMessage(event.data);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                updateStatus('Disconnected', 'bg-red-500 text-red-900');
+
+                // Attempt reconnect
+                if (!reconnectTimer) {
+                    reconnectTimer = setTimeout(() => {
+                        console.log('Attempting to reconnect...');
+                        connect();
+                    }, reconnectInterval);
+                }
+            };
+        }
+
+        // Connect on load
+        connect();
+    </script>
+</body>
+
+</html>

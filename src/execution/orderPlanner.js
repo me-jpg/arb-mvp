@@ -66,8 +66,97 @@ function buildPlannedOrders(signals = [], strategyContext = {}) {
   return out;
 }
 
+/**
+ * Compute exposure context for risk caps enforcement.
+ * 
+ * @param {Array} recentExecutions - Recent execution events
+ * @param {string} bookId - Book identifier
+ * @param {Object} caps - Risk caps configuration
+ * @param {number|Date} [now] - Reference time (default: Date.now())
+ * @returns {Object} Exposure context
+ */
+function computeExposureContext(recentExecutions, bookId, caps, now) {
+  if (!recentExecutions || !caps || (!caps.maxPerBookExposure && !caps.maxDailyLoss)) {
+    return {};
+  }
+
+  const { computeBookExposure, computeDailyPnL } = require('../risk/riskExposureTracker');
+
+  const context = {};
+  const nowTs = now ? new Date(now).getTime() : Date.now();
+
+  // Compute book exposure if cap is set
+  if (caps.maxPerBookExposure !== undefined) {
+    const exposureResult = computeBookExposure(recentExecutions, bookId, {
+      windowMs: 24 * 60 * 60 * 1000, // 24 hours
+      referenceTime: nowTs
+    });
+    context.bookExposure = exposureResult.totalStake;
+  }
+
+  // Compute daily PnL if cap is set
+  if (caps.maxDailyLoss !== undefined) {
+    const nowDate = new Date(nowTs);
+    const dayStart = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate(), 0, 0, 0, 0);
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+
+    const pnlResult = computeDailyPnL(recentExecutions, { dayStart, dayEnd });
+    context.dailyPnL = pnlResult.totalPnL;
+  }
+
+  return context;
+}
+
+/**
+ * Compute planned stake using SimRisk engine if edge available.
+ * Falls back to existing behavior when edge not provided.
+ * 
+ * @param {Object} orderContext - Order context
+ * @param {Object} globalConfig - Global config
+ * @param {number|null} maybeEdge - Optional edge signal
+ * @param {Array} [recentExecutions] - Recent execution history for exposure caps
+ * @returns {number} Computed stake
+ */
+function computePlannedStake(orderContext, globalConfig, maybeEdge, recentExecutions) {
+  try {
+    const { getExecutionRiskConfig } = require('../config');
+    const { computeStakeSize, applyRiskCaps } = require('../risk/simRiskEngine');
+
+    const riskConfig = getExecutionRiskConfig(globalConfig);
+
+    // Fallback to existing behavior if no edge
+    if (!riskConfig || maybeEdge == null || maybeEdge <= 0) {
+      return orderContext.defaultStake || globalConfig?.execution?.defaultStake || 50;
+    }
+
+    const rawStake = computeStakeSize({
+      edge: maybeEdge,
+      bankroll: riskConfig.bankroll,
+      baseUnit: riskConfig.baseUnit,
+      kellyFraction: riskConfig.kellyFraction,
+      minStake: riskConfig.minStake,
+      maxStake: riskConfig.maxStake
+    });
+
+    // Compute exposure context for caps
+    const exposureContext = computeExposureContext(
+      recentExecutions || [],
+      orderContext.book,
+      riskConfig.caps || {},
+      Date.now()
+    );
+
+    return applyRiskCaps(rawStake, riskConfig.caps || {}, exposureContext);
+  } catch {
+    // Fallback on any error
+    return orderContext.defaultStake || globalConfig?.execution?.defaultStake || 50;
+  }
+}
+
 module.exports = {
   buildPlannedOrderFromSignal,
-  buildPlannedOrders
+  buildPlannedOrders,
+  computePlannedStake,  // Export for testing
+  computeExposureContext  // Export for testing
 };
-
+```

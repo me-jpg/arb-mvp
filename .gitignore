@@ -3,3 +3,6 @@ credentials/
 .env
 logs/
 screenshots/
+.env*
+secrets/
+src/infrastructure/

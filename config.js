@@ -1,34 +1,73 @@
 // config.js
 // Configuration for ARB MVP - 4 Book System
 
-module.exports = {
+const CONFIG = {
   // Arbitrage detection settings
   minProfitMargin: 0.5,  // ⬅️ CHANGED from 1.5 to 0.5 to catch smaller arbitrages
   totalStake: 1000,
-  
+
   // Scraping settings
   scrapeInterval: 60,     // seconds between cycles
   headless: true,         // run browsers in headless mode
   staleThreshold: 120,    // seconds - lines older than this are considered stale (2 minutes)
-  
+
+  // Log file paths
+  logs: {
+    lineChanges: 'logs/line-changes.jsonl',
+    latencyMetrics: 'logs/latency-metrics.jsonl'
+  },
+
   // Book URLs (for reference)
   books: {
     draftkings: 'https://sportsbook.draftkings.com/leagues/football/nfl',
     betmgm: 'https://sports.betmgm.com/en/sports/football-11/betting/usa-9/nfl-35',
     espnbet: 'https://espnbet.com/sport/american-football/organization/usa/competition/nfl'
   },
-  
+
+  // Execution settings
+  execution: {
+    enabled: true,
+    dryRun: false,
+    logTelemetry: true,
+    healthAdvisory: {
+      enforcementMode: 'ignore'  // 'ignore' | 'log' | 'halt'
+    },
+    defaultStake: parseFloat(process.env.EXECUTION_DEFAULT_STAKE || '50'),
+    simSlippageBps: parseFloat(process.env.EXECUTION_SIM_SLIPPAGE_BPS || '0'),
+    simRejectProb: parseFloat(process.env.EXECUTION_SIM_REJECT_PROB || '0'),
+    risk: {
+      bankroll: 10000,
+      baseUnit: 10,
+      kellyFraction: 0.25,
+      minStake: 5,
+      maxStake: 500,
+      caps: {
+        maxPerBet: 1000,
+        maxPerBookExposure: 5000,
+        maxDailyLoss: 2000
+      }
+    },
+    retry: {
+      maxAttempts: 1,
+      baseDelayMs: 100,
+      maxDelayMs: 2000,
+      backoffFactor: 2,
+      retryableErrorCodes: ['NETWORK_ERROR', 'TIMEOUT'],
+      retryableFailureReasons: ['transient', 'unknown']
+    }
+  },
+
   // Alert settings
   discord: {
     enabled: true,
     webhookUrl: process.env.DISCORD_WEBHOOK_URL
   },
-  
+
   sheets: {
     enabled: false,  // Disabled for now
     spreadsheetId: process.env.SPREADSHEET_ID
   },
-  
+
   // Database configuration
   database: {
     enabled: process.env.DB_ENABLED === 'true' || false,
@@ -38,51 +77,89 @@ module.exports = {
     password: process.env.DB_PASSWORD || '',
     name: process.env.DB_NAME || 'arbitrage_db'
   },
-  
+
   // Path to Google service account credentials JSON file
   sheetsCredentials: process.env.GOOGLE_APPLICATION_CREDENTIALS || './google-credentials.json',
-  
-  // High-frequency tracking configuration
-  highFrequency: {
-    enabled: process.env.HF_ENABLED === 'true' || false,
-    // Interval between cycles - realistically 20s+ with 3 books and Puppeteer
-    // Typical cycle: scraping ~15-18s (parallel), arb engine <10ms, DB <100ms
-    intervalMs: parseInt(process.env.HF_INTERVAL_MS || '20000'), // 20 seconds (realistic default)
-    maxEvents: parseInt(process.env.HF_MAX_EVENTS || '6'), // Track top 6 games per book (reduced for speed)
-    markets: ['moneyline', 'spread', 'total'], // Which markets to track
-    books: ['draftkings', 'betmgm', 'espnbet'], // Which books to track
-    
-    // HF-specific arbitrage threshold (separate from Phase 1 minProfitMargin)
-    // Set to 0 to see ALL positive edges, or e.g. 0.5 for 0.5% minimum
-    arbitrageMinEdgePercent: parseFloat(process.env.HF_MIN_EDGE_PERCENT || '0.0'),
-    
-    // Performance instrumentation
-    debugTimings: process.env.HF_DEBUG_TIMINGS === 'true' || false,
-    
-    // Health monitoring: warn if utilization exceeds this threshold for N consecutive cycles
-    maxUtilizationWarning: parseFloat(process.env.HF_MAX_UTILIZATION || '1.5'), // 150%
-    utilizationWarnCycles: parseInt(process.env.HF_UTIL_WARN_CYCLES || '3')
+
+  // Risk management
+  risk: {
+    maxExposurePerBook: 5000,
+    maxDailyLoss: 1000,
+    enableRiskChecks: true
   },
 
-  // Execution + simulation defaults (offline)
-  execution: {
-    defaultStake: parseFloat(process.env.EXECUTION_DEFAULT_STAKE || '50'),
-    simSlippageBps: parseFloat(process.env.EXECUTION_SIM_SLIPPAGE_BPS || '0'),
-    simRejectProb: parseFloat(process.env.EXECUTION_SIM_REJECT_PROB || '0')
+  // Stake sizing config
+  stakeSizing: {
+    mode: process.env.STAKE_SIZING_MODE || 'kelly',
+    kellyFraction: parseFloat(process.env.KELLY_FRACTION || '0.25'),
+    minStake: parseFloat(process.env.MIN_STAKE || '10'),
+    maxStake: parseFloat(process.env.MAX_STAKE || '500')
   },
-  
-  // Phase 3: Latency & stale line analytics
-  latency: {
-    enabled: process.env.LATENCY_ENABLED === 'true' || false,
-    windowMs: parseInt(process.env.LATENCY_WINDOW_MS || '30000'), // 30 second windows
-    intervalMs: parseInt(process.env.LATENCY_ANALYZER_INTERVAL_MS || '60000'), // Analyze every 60s
-    staleThresholdMs: parseInt(process.env.STALE_LINE_THRESHOLD_MS || '60000'), // 60s stale threshold
-    minWindowsPerBook: parseInt(process.env.LATENCY_MIN_WINDOWS_PER_BOOK || '5') // Min windows to qualify
-  },
-  
-  // Phase 4: Real-time dashboard
-  dashboard: {
-    enabled: process.env.DASHBOARD_ENABLED === 'true' || true,
-    port: parseInt(process.env.DASHBOARD_PORT || '8787')
+
+  // ML Model (Linear Model Support)
+  mlModel: {
+    enabled: process.env.ML_MODEL_ENABLED === '1',
+    mode: process.env.ML_MODEL_MODE || 'none', // none | linear
+    modelPath: process.env.ML_MODEL_PATH || 'models/linear-model.json'
   }
+};
+
+function getStakeSizingConfig() {
+  return CONFIG.stakeSizing;
+}
+
+function getExecutionHealthAdvisoryMode(config = CONFIG) {
+  return config?.execution?.healthAdvisory?.enforcementMode || 'ignore';
+}
+
+function getExecutionRiskConfig(config = CONFIG) {
+  const risk = config?.execution?.risk;
+  if (!risk) {
+    return {
+      bankroll: 10000,
+      baseUnit: 10,
+      kellyFraction: 0.25,
+      minStake: 5,
+      maxStake: 500,
+      caps: { maxPerBet: 1000 }
+    };
+  }
+  return {
+    bankroll: risk.bankroll || 10000,
+    baseUnit: risk.baseUnit || 10,
+    kellyFraction: risk.kellyFraction || 0.25,
+    minStake: risk.minStake,
+    maxStake: risk.maxStake,
+    caps: risk.caps || {}
+  };
+}
+
+function getExecutionRetryConfig(config = CONFIG) {
+  const retry = config?.execution?.retry;
+  if (!retry) {
+    return {
+      maxAttempts: 1,
+      baseDelayMs: 100,
+      maxDelayMs: 2000,
+      backoffFactor: 2,
+      retryableErrorCodes: ['NETWORK_ERROR', 'TIMEOUT'],
+      retryableFailureReasons: ['transient', 'unknown']
+    };
+  }
+  return {
+    maxAttempts: retry.maxAttempts !== undefined ? retry.maxAttempts : 1,
+    baseDelayMs: retry.baseDelayMs !== undefined ? retry.baseDelayMs : 100,
+    maxDelayMs: retry.maxDelayMs !== undefined ? retry.maxDelayMs : 2000,
+    backoffFactor: retry.backoffFactor !== undefined ? retry.backoffFactor : 2,
+    retryableErrorCodes: retry.retryableErrorCodes || ['NETWORK_ERROR', 'TIMEOUT'],
+    retryableFailureReasons: retry.retryableFailureReasons || ['transient', 'unknown']
+  };
+}
+
+module.exports = {
+  ...CONFIG,
+  getStakeSizingConfig,
+  getExecutionHealthAdvisoryMode,
+  getExecutionRiskConfig,
+  getExecutionRetryConfig
 };

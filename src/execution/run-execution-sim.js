@@ -53,11 +53,16 @@ function main() {
   }
 
   const filtered = filterSignals(signals, opts);
+  const { getSimRunId } = require('./telemetry');
+
   if (opts.verbose) {
     console.log(`Loaded ${signals.length} signals, using ${filtered.length} after filters`);
   }
 
-  const summary = runExecutionSimulation(filtered, { strategyContext: {} });
+  const simRunId = getSimRunId();
+  if (opts.verbose) console.log(`Simulation Run ID: ${simRunId}`);
+
+  const summary = runExecutionSimulation(filtered, { strategyContext: {}, simRunId });
   printSummary(summary, filtered.length);
 }
 

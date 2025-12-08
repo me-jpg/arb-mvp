@@ -1,0 +1,12 @@
+{
+    "files.exclude": {
+        "**/.env*": true,
+        "**/secrets": true,
+        "src/infrastructure": true
+    },
+    "search.exclude": {
+        "**/.env*": true,
+        "**/secrets": true,
+        "src/infrastructure": true
+    }
+}

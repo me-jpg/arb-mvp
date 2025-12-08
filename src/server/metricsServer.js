@@ -29,7 +29,7 @@ function getPath(req) {
 }
 
 function sendJson(res, statusCode, data) {
-  res.writeHead(statusCode, { 
+  res.writeHead(statusCode, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*'
   });
@@ -66,7 +66,7 @@ function parseInt2(val, fallback) {
  */
 function handleSignalsSummary(req, res) {
   const query = parseQueryParams(req);
-  
+
   const options = {
     limit: parseInt2(query.limit, 1000),
     book: query.book || null,
@@ -93,7 +93,7 @@ function handleSignalsSummary(req, res) {
  */
 function handleSignalsStrategy(req, res) {
   const query = parseQueryParams(req);
-  
+
   // Loader options
   const loaderOptions = {
     limit: parseInt2(query.limit, 1000),
@@ -103,7 +103,7 @@ function handleSignalsStrategy(req, res) {
 
   // Strategy config from query params
   const strategyConfig = {};
-  
+
   if (query.minEdge !== undefined) {
     strategyConfig.minEdge = parseFloat2(query.minEdge, defaultStrategyConfig.minEdge);
   }
@@ -122,11 +122,11 @@ function handleSignalsStrategy(req, res) {
   if (query.maxTotalPerBook !== undefined) {
     strategyConfig.maxTotalStakePerBook = parseFloat2(query.maxTotalPerBook, defaultStrategyConfig.maxTotalStakePerBook);
   }
-  
+
   // Handle excludeBook (can be string or array)
   if (query.excludeBook) {
-    const excludeBooks = Array.isArray(query.excludeBook) 
-      ? query.excludeBook 
+    const excludeBooks = Array.isArray(query.excludeBook)
+      ? query.excludeBook
       : [query.excludeBook];
     strategyConfig.excludedBooks = excludeBooks;
   }
@@ -182,8 +182,8 @@ function handleSignalsStrategy(req, res) {
  * GET /api/health
  */
 function handleHealth(req, res) {
-  sendJson(res, 200, { 
-    status: 'ok', 
+  sendJson(res, 200, {
+    status: 'ok',
     timestamp: new Date().toISOString(),
     port: PORT
   });
@@ -207,8 +207,9 @@ function handleIndex(req, res) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Router
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
-function handleRequest(req, res) {
+async function handleRequest(req, res) {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     res.writeHead(200, {
@@ -242,23 +243,125 @@ function handleRequest(req, res) {
       case '/api/signals/strategy':
         handleSignalsStrategy(req, res);
         break;
-      default:
-        sendError(res, 404, `Not found: ${path}`);
-    }
-  } catch (err) {
-    console.error('Request error:', err);
-    sendError(res, 500, err.message || 'Internal server error');
-  }
-}
+      case '/api/latency/summary':
+        await handleLatencySummary(req, res);
+        break;
+      case '/api/latency/books':
+        await handleLatencyBooks(req, res);
+        break;
+      case '/api/latency/anomalies':
+        await handleLatencyAnomalies(req, res);
+        break;
+      case '/api/research/summary':
+        await handleResearchSummary(req, res);
+        break;
+      case '/api/execution/arb-exposure':
+        await handleArbExposure(req, res);
+        break;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Server
-// ─────────────────────────────────────────────────────────────────────────────
+      case '/api/execution/health':
+        try {
+          const { loadExecutionHealth } = require('../metrics/executionHealthLoader');
+          const health = await loadExecutionHealth({ limit: 5000, windowMinutes: 30 });
+          sendJson(res, 200, health);
+        } catch (err) {
+          console.error('[metricsServer] execution-health error:', err.message);
+          sendError(res, 500, 'execution_health_failed');
+        }
+        break;
 
-const server = http.createServer(handleRequest);
+      case '/dashboard':
+        handleDashboard(req, res);
+        break;
 
-server.listen(PORT, () => {
-  console.log(`
+        // ... existing code ...
+
+        /**
+         * GET /api/hf/market-state
+         */
+        async function handleHfMarketState(req, res) {
+          const query = parseQueryParams(req);
+          const limit = parseInt2(query.limit, 1000);
+          const windowMs = parseInt2(query.windowMs, 60000);
+
+          const changesPath = config.logs.lineChanges || 'logs/line-changes.jsonl';
+
+          try {
+            const events = await readLogEvents(changesPath, limit);
+            const features = extractFeatures(events, { windowMs });
+            const states = buildMarketState(features, { windowMs });
+
+            // Sort and limit
+            const sorted = Object.values(states).sort((a, b) => b.volatilityScore - a.volatilityScore);
+            const top20 = sorted.slice(0, 20).map(s => ({
+              id: `${s.eventId}_${s.marketType}_${s.marketKey}`,
+              volatilityScore: s.volatilityScore,
+              booksFastestReactors: s.booksFastestReactors
+            }));
+
+            sendJson(res, 200, {
+              count: Object.keys(states).length,
+              topVolatileMarkets: top20
+            });
+          } catch (err) {
+            sendError(res, 500, `Failed to build market state: ${err.message}`);
+          }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────────
+        // Router
+        // ─────────────────────────────────────────────────────────────────────────────
+
+        async function handleRequest(req, res) {
+          // Handle CORS preflight
+          if (req.method === 'OPTIONS') {
+            res.writeHead(200, {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type'
+            });
+            res.end();
+            return;
+          }
+
+          // Only GET allowed
+          if (req.method !== 'GET') {
+            sendError(res, 405, 'Method not allowed');
+            return;
+          }
+
+          const path = getPath(req);
+
+          try {
+            switch (path) {
+              case '/':
+                handleIndex(req, res);
+                break;
+              case '/api/health':
+                handleHealth(req, res);
+                break;
+              case '/api/signals/summary':
+                handleSignalsSummary(req, res);
+                break;
+              case '/api/signals/strategy':
+                handleSignalsStrategy(req, res);
+                break;
+              case '/api/latency/summary':
+                await handleLatencySummary(req, res);
+                break;
+              case '/api/latency/books':
+                await handleLatencyBooks(req, res);
+                break;
+              case '/api/hf/features/summary':
+                await handleHfFeaturesSummary(req, res);
+                // ─────────────────────────────────────────────────────────────────────────────
+                // Server
+                // ─────────────────────────────────────────────────────────────────────────────
+
+                const server = http.createServer(handleRequest);
+
+                server.listen(PORT, () => {
+                  console.log(`
 ======================================================================
 📊 METRICS API SERVER
 ======================================================================
@@ -276,21 +379,19 @@ Examples:
   curl http://localhost:${PORT}/api/signals/strategy?minEdge=0.03&stakeMode=edge_scaled
 ======================================================================
 `);
-});
+                });
 
-// Graceful shutdown
-process.on('SIGINT', () => {
-  console.log('\n🛑 Shutting down metrics server...');
-  server.close(() => {
-    console.log('✅ Server closed');
-    process.exit(0);
-  });
-});
+                // Graceful shutdown
+                process.on('SIGINT', () => {
+                  console.log('\n🛑 Shutting down metrics server...');
+                  server.close(() => {
+                    console.log('✅ Server closed');
+                    process.exit(0);
+                  });
+                });
 
-process.on('SIGTERM', () => {
-  server.close(() => process.exit(0));
-});
-
-
+                process.on('SIGTERM', () => {
+                  server.close(() => process.exit(0));
+                });
 
 

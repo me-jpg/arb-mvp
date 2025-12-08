@@ -7,6 +7,11 @@ const { runExecutionSimulation } = require('../execution/executionEngine');
 const { loadResults } = require('../results/resultsLoader');
 const { simulatePnL } = require('../results/pnlSimulator');
 
+const { captureRiskSnapshot } = require('../risk/riskSnapshotLogger');
+
+/**
+ * Filter logic
+ */
 function filterSignals(signals, opts) {
   let out = Array.isArray(signals) ? signals.slice(-opts.limit) : [];
   if (opts.book) out = out.filter(s => s.primaryBook === opts.book);
@@ -69,6 +74,9 @@ function runPaperSession(options = {}) {
       pushCount: pnl.pushCount
     };
   }
+
+  // Capture Risk Snapshot
+  captureRiskSnapshot({ source: 'paperSession', notes: [`signals=${strategySignals.length}`] });
 
   return {
     signals: {

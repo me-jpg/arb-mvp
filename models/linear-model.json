@@ -1,0 +1,10 @@
+{
+    "id": "toy-edge-only",
+    "features": {
+        "edgeEstimate": 1.0,
+        "bookAvgLagMs": 0.0,
+        "marketVolatilityScore": 0.0,
+        "stakePlanned": 0.0
+    },
+    "bias": 0.0
+}

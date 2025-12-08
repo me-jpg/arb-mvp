@@ -24,7 +24,8 @@ function assert(cond, msg) {
   const summary = runExecutionSimulation(signals, {
     logger: (e) => logs.push(e),
     riskEvaluator: fakeRisk,
-    simulator: fakeSim
+    simulator: fakeSim,
+    simRunId: 'test-run-123'
   });
 
   assert(summary.totalOrders === 2, 'total orders');
@@ -32,6 +33,20 @@ function assert(cond, msg) {
   assert(summary.blockedCount === 1, 'blocked count');
   assert(summary.filledCount === 1, 'filled count');
   assert(logs.length === 2, 'both events logged');
+
+  // Telemetry checks
+  const filledLog = logs.find(l => l.riskDecision.allowed);
+  const blockedLog = logs.find(l => !l.riskDecision.allowed);
+
+  assert(filledLog.engineVersion, 'engineVersion present');
+  assert(filledLog.fillQuality === 'neutral', 'fillQuality neutral for 0 slippage'); // slippage 0 in fakeSim
+  assert(filledLog.riskRuleSummary === '', 'empty risk summary for allowed');
+
+  assert(blockedLog.riskRuleSummary === 'too big', 'risk summary populated');
+  assert(blockedLog.fillQuality === null, 'fillQuality null for blocked');
+
+  assert(filledLog.simRunId === 'test-run-123', 'simRunId passed through');
+
   console.log('✓ executionEngine simulation orchestrates risk + sim');
 })();
 
