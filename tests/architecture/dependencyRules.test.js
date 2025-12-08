@@ -49,6 +49,19 @@ function extractImports(filePath) {
     const importRegex = /import\s+.*\s+from\s+['"]([^'"]+)['"]/g;
 
     lines.forEach((line, index) => {
+        // Check if ARCH_TEST_IGNORE is in the few lines before this one
+        let hasIgnoreAnnotation = false;
+        for (let lookback = Math.max(0, index - 3); lookback < index; lookback++) {
+            if (lines[lookback].includes('ARCH_TEST_IGNORE')) {
+                hasIgnoreAnnotation = true;
+                break;
+            }
+        }
+
+        if (hasIgnoreAnnotation) {
+            return;
+        }
+
         // Skip comments
         if (line.trim().startsWith('//') || line.trim().startsWith('*')) {
             return;

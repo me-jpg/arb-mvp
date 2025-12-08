@@ -74,8 +74,13 @@ function scanForHardcodedConfig(filePath) {
             return;
         }
 
-        // Skip lines with ARCH_TEST_IGNORE
+        // Skip lines with ARCH_TEST_IGNORE on same line
         if (line.includes('// ARCH_TEST_IGNORE') || line.includes('/* ARCH_TEST_IGNORE')) {
+            return;
+        }
+
+        // Check if previous line has ARCH_TEST_IGNORE (for annotations above code)
+        if (index > 0 && lines[index - 1].includes('ARCH_TEST_IGNORE')) {
             return;
         }
 
