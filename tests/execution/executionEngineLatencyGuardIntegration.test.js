@@ -22,7 +22,7 @@ async function mockExecuteArbPlan(arbPlan, engineContext) {
 
     // Latency guard evaluation
     const latencyConfig = getExecutionLatencyGuardConfig(config);
-    const latencyDecision = evaluateArbLatency(arbPlan, latenc yConfig, engineContext.nowMs || Date.now());
+    const latencyDecision = evaluateArbLatency(arbPlan, latencyConfig, engineContext.nowMs || Date.now());
 
     if (latencyDecision.shouldSkip) {
         return {
