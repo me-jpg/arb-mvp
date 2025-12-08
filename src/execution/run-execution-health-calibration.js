@@ -17,6 +17,7 @@ args.forEach(arg => {
     }
 });
 
+// ARCH_TEST_IGNORE: CLI argument defaults, not business logic tunables
 const LIMIT = kwargs.limit ? parseInt(kwargs.limit, 10) : 5000;
 const WINDOW_MINUTES = kwargs.windowMinutes ? parseInt(kwargs.windowMinutes, 10) : 30;
 const HOURS_BACK = kwargs.hoursBack ? parseInt(kwargs.hoursBack, 10) : 24;
