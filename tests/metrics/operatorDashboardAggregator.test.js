@@ -61,7 +61,7 @@ console.log('=== Operator Dashboard Aggregator Tests ===\\n');
     assert.strictEqual(result.execution.stats.failed, 1);
     assert.strictEqual(result.execution.stats.skipped, 1);
     assert.strictEqual(result.execution.stats.blockedByLatency, 1);
-    assert.strictEqual(result.execution.stats.blockedBySafety, 1this);
+    assert.strictEqual(result.execution.stats.blockedBySafety, 1);
     console.log('✓ Execution aggregation: correct stats');
 }
 
