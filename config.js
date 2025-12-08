@@ -69,6 +69,12 @@ const CONFIG = {
       maxHedgeFraction: 1.0,           // hedge up to 100% of filledStake
       executeHedges: false             // default: compute-only, no execution
     },
+    latencyGuard: {
+      enabled: false,                  // default: NO-OP (backward compatible)
+      maxLegAgeMs: 2000,               // maximum age for any leg (in ms)
+      maxSkewBetweenLegsMs: 1500,      // max allowed difference between freshest and stalest leg
+      action: 'skip'                   // 'skip' | 'warn_only'
+    },
     mode: 'simulation',  // 'simulation' | 'paper' | 'live' - default to simulation for safety
     safety: {
       requireHealthAdvisoryIgnoreOrLog: true,
@@ -252,5 +258,6 @@ module.exports = {
   getExecutionIdempotencyConfig,
   getArbExecutionConfig,
   getExecutionHedgingConfig,
-  getExecutionModeConfig
+  getExecutionModeConfig,
+  getExecutionLatencyGuardConfig
 };
