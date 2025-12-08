@@ -46,13 +46,18 @@ function buildOperatorDashboardSnapshot(input = {}, nowMs = Date.now()) {
         global: { windowMinutes: 0, totalEvents: 0, booksConsidered: [] }
     };
 
+    // Classify latency health
+    const latencyHealthConfig = getLatencyHealthConfig();
+    const latencyHealth = classifyLatency(latencyAnalytics, latencyHealthConfig);
+
     return {
         timestamp: new Date(nowMs).toISOString(),
         execution,
         risk,
         health,
         recentArbitrageEvents,
-        latencyAnalytics
+        latencyAnalytics,
+        latencyHealth
     };
 }
 
