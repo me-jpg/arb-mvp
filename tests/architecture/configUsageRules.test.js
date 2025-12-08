@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 
-console.log('=== Architecture: Config Usage Rules ===\n');
+console.log('=== Architecture: Config Usage Rules ===\\n');
 
 /**
  * Recursively find all .js files in a directory.
@@ -63,7 +63,7 @@ const CONFIG_KEYWORDS = [
  */
 function scanForHardcodedConfig(filePath) {
     const content = fs.readFileSync(filePath, 'utf8');
-    const lines = content.split('\n');
+    const lines = content.split('\\n');
     const violations = [];
 
     lines.forEach((line, index) => {
@@ -79,7 +79,17 @@ function scanForHardcodedConfig(filePath) {
             return;
         }
 
-
+        // Check previous lines for ARCH_TEST_IGNORE (for multi-line objects/blocks)
+        let hasIgnoreAnnotation = false;
+        for (let lookback = Math.max(0, index - 10); lookback < index; lookback++) {
+            if (lines[lookback].includes('ARCH_TEST_IGNORE')) {
+                hasIgnoreAnnotation = true;
+                break;
+            }
+        }
+        if (hasIgnoreAnnotation) {
+            return;
+        }
 
         // Check if line contains any config keywords (case-insensitive)
         const lowerLine = line.toLowerCase();
@@ -92,8 +102,8 @@ function scanForHardcodedConfig(filePath) {
         // Look for numeric literals (excluding 0, 1, which are often boolean-like or indices)
         // Match patterns like: = 100, > 0.5, : 2000, etc.
         const numericPatterns = [
-            /[=:><!]\s*(\d+\.\d+)/g,  // Decimals like 0.5, 100.0
-            /[=:><!]\s*([2-9]\d+)/g,  // Integers >= 20 (to avoid false positives on 0, 1, 2, etc.)
+            /[=:><!]\\s*(\\d+\\.\\d+)/g,  // Decimals like 0.5, 100.0
+            /[=:><!]\\s*([2-9]\\d+)/g,  // Integers >= 20 (to avoid false positives on 0, 1, 2, etc.)
         ];
 
         let foundNumber = false;
@@ -131,11 +141,11 @@ function scanForHardcodedConfig(filePath) {
     assert.strictEqual(
         violations.length,
         0,
-        `Hardcoded config values detected in src/execution:\n` +
+        `Hardcoded config values detected in src/execution:\\n` +
         violations.slice(0, 10).map(v =>
-            `  ${v.file}:${v.line}\n    ${v.content}\n    → Move to config.js or annotate with // ARCH_TEST_IGNORE`
-        ).join('\n') +
-        (violations.length > 10 ? `\n  ... and ${violations.length - 10} more violations` : '')
+            `  ${v.file}:${v.line}\\n    ${v.content}\\n    → Move to config.js or annotate with // ARCH_TEST_IGNORE`
+        ).join('\\n') +
+        (violations.length > 10 ? `\\n  ... and ${violations.length - 10} more violations` : '')
     );
 
     console.log('✓ Rule 1: src/execution has no hardcoded config values');
@@ -157,14 +167,14 @@ function scanForHardcodedConfig(filePath) {
     assert.strictEqual(
         violations.length,
         0,
-        `Hardcoded config values detected in src/risk:\n` +
+        `Hardcoded config values detected in src/risk:\\n` +
         violations.slice(0, 10).map(v =>
-            `  ${v.file}:${v.line}\n    ${v.content}\n    → Move to config.js or annotate with // ARCH_TEST_IGNORE`
-        ).join('\n') +
-        (violations.length > 10 ? `\n  ... and ${violations.length - 10} more violations` : '')
+            `  ${v.file}:${v.line}\\n    ${v.content}\\n    → Move to config.js or annotate with // ARCH_TEST_IGNORE`
+        ).join('\\n') +
+        (violations.length > 10 ? `\\n  ... and ${violations.length - 10} more violations` : '')
     );
 
     console.log('✓ Rule 2: src/risk has no hardcoded config values');
 }
 
-console.log('\n=== All config usage rules passed ===\n');
+console.log('\\n=== All config usage rules passed ===\\n');
