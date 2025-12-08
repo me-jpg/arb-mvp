@@ -177,4 +177,38 @@ console.log('=== Operator Dashboard Aggregator Tests ===\\n');
     console.log('✓ Determinism: consistent stats from same input');
 }
 
+/**
+ * Test: Recent arb events population
+ */
+{
+    // Record some arb events
+    recordArbResult({
+        eventId: 'evt1',
+        books: ['draftkings', 'fanduel'],
+        edge: 2.5,
+        marketType: 'moneyline'
+    });
+
+    recordArbResult({
+        eventId: 'evt2',
+        books: ['betmgm'],
+        edge: 1.8,
+        marketType: 'spread'
+    });
+
+    const result = buildOperatorDashboardSnapshot({});
+
+    assert.ok(Array.isArray(result.recentArbitrageEvents));
+    assert.ok(result.recentArbitrageEvents.length >= 2);
+
+    const evt = result.recentArbitrageEvents.find(e => e.eventId === 'evt1');
+    assert.ok(evt);
+    assert.strictEqual(evt.edge, 2.5);
+    assert.deepStrictEqual(evt.books, ['draftkings', 'fanduel']);
+    assert.strictEqual(evt.marketType, 'moneyline');
+    assert.ok(typeof evt.createdAtMs === 'number');
+
+    console.log('✓ Recent arb events: population and structure');
+}
+
 console.log('\\n=== All operator dashboard aggregator tests passed ===\\n');

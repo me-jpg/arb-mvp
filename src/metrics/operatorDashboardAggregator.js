@@ -5,6 +5,12 @@
  * Pure aggregation logic: array-in → object-out.
  */
 
+const { createArbResultsBuffer, addArbResult, getRecentArbResults } = require('./arbResultsBuffer');
+const { getArbResultsBufferConfig } = require('../config');
+
+// Single in-memory buffer instance at module scope
+const arbResultsBuffer = createArbResultsBuffer(getArbResultsBufferConfig());
+
 /**
  * Build operator dashboard snapshot from input data.
  * 
