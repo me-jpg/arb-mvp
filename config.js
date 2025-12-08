@@ -1,6 +1,54 @@
 // config.js
 // Configuration for ARB MVP - 4 Book System
 
+// =====================================================================
+// Execution Profiles
+// =====================================================================
+
+const DEFAULT_EXECUTION_PROFILES = {
+  dev: {
+    execution: {
+      mode: 'simulation',
+      hedging: { enabled: false, executeHedges: false },
+      latencyGuard: { enabled: false }
+    }
+  },
+  sim_safe: {
+    execution: {
+      mode: 'simulation',
+      hedging: { enabled: true, executeHedges: false },
+      latencyGuard: { enabled: true },
+      healthAdvisory: { enforcementMode: 'log' }
+    }
+  },
+  paper_low_risk: {
+    execution: {
+      mode: 'paper',
+      hedging: { enabled: true, executeHedges: true },
+      latencyGuard: { enabled: true },
+      healthAdvisory: { enforcementMode: 'log' }
+    }
+  },
+  live_guarded: {
+    execution: {
+      mode: 'live',
+      hedging: { enabled: true, executeHedges: true },
+      latencyGuard: { enabled: true },
+      healthAdvisory: { enforcementMode: 'halt' },
+      safety: {
+        requireHealthAdvisoryIgnoreOrLog: false,
+        requireIdempotencyEnabled: true,
+        requireRiskCapsEnabled: true
+      }
+    }
+  }
+};
+
+// =====================================================================
+// Runtime Configuration
+// =====================================================================
+
+
 const CONFIG = {
   // Arbitrage detection settings
   minProfitMargin: 0.5,  // ⬅️ CHANGED from 1.5 to 0.5 to catch smaller arbitrages
