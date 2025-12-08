@@ -5,7 +5,7 @@
  */
 
 const assert = require('assert');
-const { buildOperatorDashboardSnapshot, aggregateExecutionStats, aggregateRiskMetrics, aggregateHealthAdvisories } = require('../../src/metrics/operatorDashboardAggregator');
+const { buildOperatorDashboardSnapshot, aggregateExecutionStats, aggregateRiskMetrics, aggregateHealthAdvisories, recordArbResult } = require('../../src/metrics/operatorDashboardAggregator');
 
 console.log('=== Operator Dashboard Aggregator Tests ===\\n');
 

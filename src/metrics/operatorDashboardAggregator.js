@@ -6,7 +6,7 @@
  */
 
 const { createArbResultsBuffer, addArbResult, getRecentArbResults } = require('./arbResultsBuffer');
-const { getArbResultsBufferConfig } = require('../config');
+const { getArbResultsBufferConfig } = require('../../config');
 
 // Single in-memory buffer instance at module scope
 const arbResultsBuffer = createArbResultsBuffer(getArbResultsBufferConfig());
