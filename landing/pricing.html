@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="LineStream Pricing - Beta access and standard plans for real-time odds API.">
+    <title>Pricing | LineStream</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #0B0F14;
+            --bg-elevated: #0F1419;
+            --border: #1E2530;
+            --text: #E6E8EB;
+            --text-muted: #6B7280;
+            --accent: #42FF9E;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--text);
+            background: var(--bg);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 2px);
+            z-index: 9999;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .nav {
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 0;
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .nav-brand {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 12px;
+            letter-spacing: 0.05em;
+            transition: color 150ms;
+        }
+
+        .nav-link:hover {
+            color: var(--accent);
+        }
+
+        .nav-link.active {
+            color: var(--accent);
+        }
+
+        .page-header {
+            padding: 48px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .page-header h1 {
+            font-size: 24px;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .page-header p {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .pricing-section {
+            padding: 48px 0;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+        }
+
+        .pricing-card {
+            background: var(--bg-elevated);
+            padding: 32px;
+        }
+
+        .pricing-card.featured {
+            border-top: 2px solid var(--accent);
+        }
+
+        .pricing-tier {
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .pricing-amount {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .pricing-period {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .pricing-tag {
+            display: inline-block;
+            font-size: 10px;
+            color: var(--accent);
+            background: rgba(66, 255, 158, 0.1);
+            padding: 4px 8px;
+            margin-bottom: 16px;
+            letter-spacing: 0.05em;
+        }
+
+        .pricing-features {
+            margin-bottom: 24px;
+        }
+
+        .pricing-feature {
+            font-size: 12px;
+            color: var(--text-muted);
+            padding: 6px 0;
+        }
+
+        .pricing-feature::before {
+            content: "✓";
+            color: var(--accent);
+            margin-right: 10px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-decoration: none;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            background: transparent;
+            cursor: pointer;
+            transition: all 150ms linear;
+            width: 100%;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        .btn-disabled {
+            border-color: var(--border);
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        .btn-disabled:hover {
+            background: transparent;
+            color: var(--text-muted);
+        }
+
+        .faq-section {
+            padding: 48px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .faq-section h2 {
+            font-size: 14px;
+            color: var(--accent);
+            margin-bottom: 24px;
+            letter-spacing: 0.05em;
+        }
+
+        .faq-item {
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .faq-item:last-child {
+            border-bottom: none;
+        }
+
+        .faq-q {
+            font-size: 13px;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .faq-a {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        footer {
+            padding: 24px 0;
+            font-size: 11px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+        }
+
+        footer a {
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--accent);
+        }
+
+        @media (max-width: 900px) {
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .nav-links {
+                gap: 16px;
+            }
+
+            .nav-link {
+                font-size: 11px;
+            }
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            width: 100%;
+            max-width: 420px;
+            margin: 24px;
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--accent);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            outline: none;
+        }
+
+        .form-input:focus {
+            border-color: var(--accent);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-note {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .modal-footer {
+            padding: 0 20px 20px;
+        }
+
+        .form-success {
+            display: none;
+            text-align: center;
+            padding: 24px;
+        }
+
+        .form-success.active {
+            display: block;
+        }
+
+        .form-success-icon {
+            font-size: 28px;
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+
+        .form-success-text {
+            color: var(--text);
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .form-success-sub {
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .form-content.hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="nav">
+        <div class="nav-content">
+            <a href="index.html" class="nav-brand">LINESTREAM</a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">HOME</a>
+                <a href="docs.html" class="nav-link">DOCS</a>
+                <a href="pricing.html" class="nav-link active">PRICING</a>
+                <a href="https://arb-mvp-production.up.railway.app/health" target="_blank" class="nav-link">STATUS</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-header">
+        <div class="container">
+            <h1>Pricing</h1>
+            <p>Simple, transparent pricing. Beta users lock in $29/mo for life.</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="pricing-section">
+            <div class="pricing-grid">
+                <div class="pricing-card featured">
+                    <div class="pricing-tier">BETA</div>
+                    <div class="pricing-amount">$29</div>
+                    <div class="pricing-period">per month</div>
+                    <div class="pricing-tag">LOCKED FOR LIFE</div>
+                    <div class="pricing-features">
+                        <div class="pricing-feature">Unlimited API calls</div>
+                        <div class="pricing-feature">All endpoints access</div>
+                        <div class="pricing-feature">Priority support</div>
+                        <div class="pricing-feature">Direct feedback channel</div>
+                        <div class="pricing-feature">First 50 users only</div>
+                    </div>
+                    <button class="btn" onclick="openModal()">[ REQUEST ACCESS ]</button>
+                </div>
+                <div class="pricing-card">
+                    <div class="pricing-tier">STANDARD</div>
+                    <div class="pricing-amount">$99</div>
+                    <div class="pricing-period">per month</div>
+                    <div class="pricing-features">
+                        <div class="pricing-feature">10,000 API calls/day</div>
+                        <div class="pricing-feature">All endpoints access</div>
+                        <div class="pricing-feature">Standard support</div>
+                        <div class="pricing-feature">Full documentation</div>
+                    </div>
+                    <span class="btn btn-disabled">[ COMING SOON ]</span>
+                </div>
+                <div class="pricing-card">
+                    <div class="pricing-tier">PRO</div>
+                    <div class="pricing-amount">$299</div>
+                    <div class="pricing-period">per month</div>
+                    <div class="pricing-features">
+                        <div class="pricing-feature">Unlimited API calls</div>
+                        <div class="pricing-feature">All endpoints access</div>
+                        <div class="pricing-feature">Priority support</div>
+                        <div class="pricing-feature">Custom integrations</div>
+                        <div class="pricing-feature">SLA guarantee</div>
+                    </div>
+                    <span class="btn btn-disabled">[ COMING SOON ]</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="faq-section">
+            <h2>FAQ</h2>
+            <div class="faq-item">
+                <div class="faq-q">What does "locked for life" mean?</div>
+                <div class="faq-a">Beta users who sign up at $29/mo keep that rate forever, even when we raise prices.
+                </div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">How many beta slots are left?</div>
+                <div class="faq-a">We're limiting beta to 50 users. Request access to secure your spot.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">What sportsbooks do you cover?</div>
+                <div class="faq-a">Currently: DraftKings, FanDuel, BetMGM, ESPN Bet. More added based on user feedback.
+                </div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">What sports are supported?</div>
+                <div class="faq-a">NBA, NFL, MLB, NHL, NCAAB, NCAAF. Expanding based on demand.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-q">How do I integrate?</div>
+                <div class="faq-a">Simple REST API with JSON responses. See our <a href="docs.html"
+                        style="color: var(--accent);">documentation</a> for details.</div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <a href="mailto:linestreamservice@gmail.com">linestreamservice@gmail.com</a> ● Questions? Contact us.
+        </div>
+    </footer>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="accessModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span>REQUEST_ACCESS</span>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="form-content" id="formContent">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">EMAIL</label>
+                        <input type="email" class="form-input" id="userEmail" placeholder="you@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">USE CASE (OPTIONAL)</label>
+                        <input type="text" class="form-input" id="useCase"
+                            placeholder="Quantitative trading, syndicate ops...">
+                    </div>
+                    <div class="form-note">
+                        > Sent to: <span style="color: var(--accent);">linestreamservice@gmail.com</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" style="width: 100%; text-align: center;" onclick="submitRequest()">[ SUBMIT
+                        ]</button>
+                </div>
+            </div>
+            <div class="form-success" id="formSuccess">
+                <div class="form-success-icon">✓</div>
+                <div class="form-success-text">REQUEST_SUBMITTED</div>
+                <div class="form-success-sub">We'll contact you within 24 hours.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openModal() {
+            document.getElementById('accessModal').classList.add('active');
+            document.getElementById('formContent').classList.remove('hidden');
+            document.getElementById('formSuccess').classList.remove('active');
+            document.getElementById('userEmail').value = '';
+            document.getElementById('useCase').value = '';
+        }
+
+        function closeModal() {
+            document.getElementById('accessModal').classList.remove('active');
+        }
+
+        function submitRequest() {
+            const email = document.getElementById('userEmail').value;
+            const useCase = document.getElementById('useCase').value;
+
+            if (!email || !email.includes('@')) {
+                alert('Please enter a valid email address');
+                return;
+            }
+
+            const subject = encodeURIComponent('ACCESS_REQUEST');
+            const body = encodeURIComponent(`REQUEST_TYPE: Beta Access\n\nEMAIL: ${email}\n\nUSE_CASE: ${useCase || 'Not specified'}`);
+            window.open(`mailto:linestreamservice@gmail.com?subject=${subject}&body=${body}`, '_blank');
+
+            document.getElementById('formContent').classList.add('hidden');
+            document.getElementById('formSuccess').classList.add('active');
+
+            setTimeout(() => { closeModal(); }, 3000);
+        }
+
+        document.getElementById('accessModal').addEventListener('click', function (e) {
+            if (e.target === this) { closeModal(); }
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { closeModal(); }
+        });
+    </script>
+
+</body>
+
+</html>

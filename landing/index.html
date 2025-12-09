@@ -60,12 +60,54 @@
             padding: 0 24px;
         }
 
-        /* Top Bar */
-        .top-bar {
+        /* Navigation */
+        .nav {
             background: var(--bg-elevated);
             border-bottom: 1px solid var(--border);
-            padding: 12px 0;
+            padding: 16px 0;
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
             font-size: 12px;
+            letter-spacing: 0.05em;
+            transition: color 150ms;
+        }
+
+        .nav-link:hover {
+            color: var(--accent);
+        }
+
+        .nav-link.active {
+            color: var(--accent);
+        }
+
+        /* Top Bar */
+        .top-bar {
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            padding: 8px 0;
+            font-size: 11px;
             letter-spacing: 0.02em;
         }
 
@@ -105,68 +147,30 @@
 
         /* Hero */
         .hero {
-            padding: 80px 0 64px;
+            padding: 64px 0 48px;
             border-bottom: 1px solid var(--border);
         }
 
-        .system-header {
-            color: var(--text-muted);
-            font-size: 12px;
-            letter-spacing: 0.05em;
-            margin-bottom: 8px;
+        .system-tag {
+            font-size: 11px;
+            color: var(--accent);
+            letter-spacing: 0.1em;
+            margin-bottom: 16px;
         }
 
-        .system-title {
-            font-size: 13px;
-            font-weight: 600;
+        .hero h1 {
+            font-size: 28px;
+            font-weight: 700;
             color: var(--text);
-            margin-bottom: 4px;
+            margin-bottom: 16px;
+            max-width: 600px;
         }
 
-        .system-status {
-            font-size: 12px;
-            color: var(--accent);
-            margin-bottom: 48px;
-        }
-
-        .terminal-block {
-            background: var(--bg-elevated);
-            border: 1px solid var(--border);
-            padding: 32px;
-            margin-bottom: 48px;
-        }
-
-        .terminal-line {
-            margin-bottom: 8px;
+        .hero-sub {
             color: var(--text-muted);
-        }
-
-        .terminal-line::before {
-            content: ">";
-            color: var(--accent);
-            margin-right: 12px;
-        }
-
-        .terminal-cursor {
-            display: inline-block;
-            width: 8px;
-            height: 16px;
-            background: var(--accent);
-            margin-left: 4px;
-            animation: cursor-blink 1s infinite;
-        }
-
-        @keyframes cursor-blink {
-
-            0%,
-            50% {
-                opacity: 1;
-            }
-
-            51%,
-            100% {
-                opacity: 0;
-            }
+            font-size: 14px;
+            margin-bottom: 32px;
+            max-width: 500px;
         }
 
         /* Buttons */
@@ -201,17 +205,6 @@
             color: var(--text);
         }
 
-        .btn-disabled {
-            border-color: var(--border);
-            color: var(--text-muted);
-            cursor: not-allowed;
-        }
-
-        .btn-disabled:hover {
-            background: transparent;
-            color: var(--text-muted);
-        }
-
         .btn-row {
             display: flex;
             gap: 16px;
@@ -220,7 +213,7 @@
 
         /* Section */
         section {
-            padding: 64px 0;
+            padding: 48px 0;
             border-bottom: 1px solid var(--border);
         }
 
@@ -229,120 +222,62 @@
             font-weight: 600;
             color: var(--text-muted);
             letter-spacing: 0.1em;
-            margin-bottom: 32px;
+            margin-bottom: 24px;
             text-transform: uppercase;
         }
 
-        /* System Output */
-        .system-output {
-            background: var(--bg-elevated);
-            border: 1px solid var(--border);
-            padding: 24px;
-            font-size: 13px;
-        }
-
-        .output-line {
-            margin-bottom: 6px;
-            display: flex;
-        }
-
-        .output-line::before {
-            content: ">";
-            color: var(--accent);
-            margin-right: 12px;
-            flex-shrink: 0;
-        }
-
-        .output-key {
-            color: var(--text-muted);
-        }
-
-        .output-value {
-            color: var(--accent);
-            margin-left: 8px;
-        }
-
-        .output-value.warning {
-            color: var(--warning);
-        }
-
-        .output-value.signal {
-            color: var(--signal);
-        }
-
-        /* Telemetry */
-        .telemetry-grid {
+        /* Stats Grid */
+        .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 1px;
             background: var(--border);
             border: 1px solid var(--border);
+            margin-bottom: 32px;
         }
 
-        .telemetry-item {
+        .stat-item {
             background: var(--bg-elevated);
-            padding: 32px 24px;
+            padding: 24px;
             text-align: center;
         }
 
-        .telemetry-value {
-            font-size: 32px;
+        .stat-value {
+            font-size: 24px;
             font-weight: 700;
             color: var(--text);
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }
 
-        .telemetry-label {
-            font-size: 11px;
+        .stat-label {
+            font-size: 10px;
             color: var(--text-muted);
             letter-spacing: 0.05em;
             text-transform: uppercase;
         }
 
-        /* Data Sources */
-        .data-sources {
-            background: var(--bg-elevated);
-            border: 1px solid var(--border);
-            padding: 24px;
-        }
-
-        .data-source-header {
-            color: var(--text-muted);
-            font-size: 12px;
-            margin-bottom: 16px;
-        }
-
-        .data-source-header::before {
-            content: ">";
-            color: var(--accent);
-            margin-right: 12px;
-        }
-
-        .data-source-item {
+        /* Data Sources inline */
+        .sources-row {
             display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--border);
+            gap: 24px;
+            flex-wrap: wrap;
             font-size: 13px;
         }
 
-        .data-source-item:last-child {
-            border-bottom: none;
+        .source-item {
+            color: var(--text-muted);
         }
 
-        .data-source-name {
-            color: var(--text);
-            letter-spacing: 0.02em;
-        }
-
-        .data-source-status {
+        .source-item::before {
+            content: "✓";
             color: var(--accent);
+            margin-right: 8px;
         }
 
         /* Features Grid */
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 1px;
             background: var(--border);
             border: 1px solid var(--border);
@@ -353,15 +288,16 @@
             padding: 24px;
         }
 
-        .feature-key {
-            color: var(--text-muted);
+        .feature-title {
+            color: var(--accent);
             font-size: 12px;
+            font-weight: 600;
             margin-bottom: 8px;
         }
 
-        .feature-value {
-            color: var(--text);
-            font-size: 13px;
+        .feature-desc {
+            color: var(--text-muted);
+            font-size: 12px;
         }
 
         /* Pricing */
@@ -378,12 +314,16 @@
             padding: 32px;
         }
 
+        .pricing-card.active {
+            border-left: 2px solid var(--accent);
+        }
+
         .pricing-tier {
             font-size: 11px;
             color: var(--text-muted);
             letter-spacing: 0.1em;
             text-transform: uppercase;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
 
         .pricing-amount {
@@ -394,19 +334,19 @@
         }
 
         .pricing-note {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-bottom: 24px;
+            font-size: 11px;
+            color: var(--accent);
+            margin-bottom: 16px;
         }
 
         .pricing-features {
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
         .pricing-feature {
             font-size: 12px;
             color: var(--text-muted);
-            padding: 6px 0;
+            padding: 4px 0;
         }
 
         .pricing-feature::before {
@@ -415,38 +355,44 @@
             color: var(--accent);
         }
 
-        .pricing-card.active {
-            border-left: 2px solid var(--accent);
+        .btn-disabled {
+            border-color: var(--border);
+            color: var(--text-muted);
+            cursor: not-allowed;
         }
 
-        /* API Preview */
+        .btn-disabled:hover {
+            background: transparent;
+            color: var(--text-muted);
+        }
+
+        /* API Block */
         .api-block {
             background: var(--bg-elevated);
             border: 1px solid var(--border);
         }
 
         .api-header {
-            padding: 16px 24px;
+            padding: 12px 20px;
             border-bottom: 1px solid var(--border);
             font-size: 11px;
             color: var(--text-muted);
             letter-spacing: 0.05em;
-            text-transform: uppercase;
         }
 
         .api-body {
-            padding: 24px;
+            padding: 20px;
         }
 
         .api-endpoint {
             display: flex;
-            padding: 8px 0;
-            font-size: 13px;
+            padding: 6px 0;
+            font-size: 12px;
         }
 
         .api-method {
             color: var(--accent);
-            width: 48px;
+            width: 40px;
             flex-shrink: 0;
         }
 
@@ -455,47 +401,18 @@
         }
 
         .api-example {
-            margin-top: 24px;
-            padding: 16px;
+            margin-top: 16px;
+            padding: 12px;
             background: var(--bg);
             border: 1px solid var(--border);
-            font-size: 12px;
+            font-size: 11px;
             color: var(--accent);
-            overflow-x: auto;
-        }
-
-        /* Coverage */
-        .coverage-list {
-            background: var(--bg-elevated);
-            border: 1px solid var(--border);
-            padding: 24px;
-        }
-
-        .coverage-item {
-            display: flex;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border);
-            font-size: 13px;
-        }
-
-        .coverage-item:last-child {
-            border-bottom: none;
-        }
-
-        .coverage-key {
-            width: 180px;
-            color: var(--text-muted);
-            flex-shrink: 0;
-        }
-
-        .coverage-value {
-            color: var(--text);
         }
 
         /* Footer */
         footer {
-            padding: 32px 0;
-            font-size: 12px;
+            padding: 24px 0;
+            font-size: 11px;
             color: var(--text-muted);
         }
 
@@ -512,116 +429,6 @@
 
         footer a:hover {
             color: var(--accent);
-        }
-
-        /* Problems */
-        .problems-list {
-            background: var(--bg-elevated);
-            border: 1px solid var(--border);
-            padding: 24px;
-        }
-
-        .problem-item {
-            padding: 10px 0;
-            font-size: 13px;
-            color: var(--text-muted);
-            border-bottom: 1px solid var(--border);
-        }
-
-        .problem-item:last-child {
-            border-bottom: none;
-        }
-
-        .problem-item::before {
-            content: "×";
-            color: var(--warning);
-            margin-right: 12px;
-            font-weight: 600;
-        }
-
-        .conclusion {
-            margin-top: 32px;
-            font-size: 13px;
-            color: var(--text);
-        }
-
-        .conclusion::before {
-            content: ">";
-            color: var(--accent);
-            margin-right: 12px;
-        }
-
-        /* Final CTA */
-        .final-cta {
-            text-align: center;
-            padding: 80px 0;
-        }
-
-        .final-text {
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-bottom: 32px;
-            max-width: 480px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .final-contact {
-            margin-top: 24px;
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        .final-contact a {
-            color: var(--text-muted);
-            text-decoration: none;
-        }
-
-        .final-contact a:hover {
-            color: var(--accent);
-        }
-
-        /* Responsive */
-        @media (max-width: 900px) {
-
-            .telemetry-grid,
-            .features-grid,
-            .pricing-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .top-bar-content {
-                flex-direction: column;
-                gap: 8px;
-                text-align: center;
-            }
-        }
-
-        @media (max-width: 600px) {
-            .hero {
-                padding: 48px 0;
-            }
-
-            .terminal-block {
-                padding: 20px;
-            }
-
-            .btn-row {
-                flex-direction: column;
-            }
-
-            .btn {
-                text-align: center;
-            }
-
-            .coverage-item {
-                flex-direction: column;
-                gap: 4px;
-            }
-
-            .coverage-key {
-                width: auto;
-            }
         }
 
         /* Modal */
@@ -646,18 +453,17 @@
             background: var(--bg-elevated);
             border: 1px solid var(--border);
             width: 100%;
-            max-width: 480px;
+            max-width: 420px;
             margin: 24px;
         }
 
         .modal-header {
-            padding: 20px 24px;
+            padding: 16px 20px;
             border-bottom: 1px solid var(--border);
             font-size: 11px;
             font-weight: 600;
             color: var(--text-muted);
             letter-spacing: 0.1em;
-            text-transform: uppercase;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -678,27 +484,27 @@
         }
 
         .modal-body {
-            padding: 24px;
+            padding: 20px;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         .form-label {
             display: block;
-            font-size: 11px;
+            font-size: 10px;
             color: var(--text-muted);
             letter-spacing: 0.05em;
             text-transform: uppercase;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .form-input {
             width: 100%;
-            padding: 12px 16px;
+            padding: 10px 14px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 14px;
+            font-size: 13px;
             background: var(--bg);
             border: 1px solid var(--border);
             color: var(--text);
@@ -714,13 +520,13 @@
         }
 
         .form-note {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-muted);
             margin-top: 8px;
         }
 
         .modal-footer {
-            padding: 0 24px 24px;
+            padding: 0 20px 20px;
         }
 
         .form-success {
@@ -734,40 +540,195 @@
         }
 
         .form-success-icon {
-            font-size: 32px;
+            font-size: 28px;
             color: var(--accent);
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
 
         .form-success-text {
             color: var(--text);
-            font-size: 14px;
-            margin-bottom: 8px;
+            font-size: 13px;
+            margin-bottom: 6px;
         }
 
         .form-success-sub {
             color: var(--text-muted);
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .form-content.hidden {
             display: none;
+        }
+
+        /* Scroll Animations */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Staggered children animation */
+        .stagger-children .fade-child {
+            opacity: 0;
+            transform: translateY(15px);
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+        }
+
+        .stagger-children.visible .fade-child {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .stagger-children.visible .fade-child:nth-child(1) {
+            transition-delay: 0.05s;
+        }
+
+        .stagger-children.visible .fade-child:nth-child(2) {
+            transition-delay: 0.1s;
+        }
+
+        .stagger-children.visible .fade-child:nth-child(3) {
+            transition-delay: 0.15s;
+        }
+
+        .stagger-children.visible .fade-child:nth-child(4) {
+            transition-delay: 0.2s;
+        }
+
+        .stagger-children.visible .fade-child:nth-child(5) {
+            transition-delay: 0.25s;
+        }
+
+        .stagger-children.visible .fade-child:nth-child(6) {
+            transition-delay: 0.3s;
+        }
+
+        /* Subtle hover lifts */
+        .stat-item,
+        .feature-item,
+        .pricing-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .stat-item:hover,
+        .feature-item:hover {
+            transform: translateY(-2px);
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-3px);
+        }
+
+        /* Button pulse on hover */
+        .btn {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(66, 255, 158, 0.1);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.4s ease, height 0.4s ease;
+        }
+
+        .btn:hover::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+
+            .stats-grid,
+            .features-grid,
+            .pricing-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .nav-links {
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .hero {
+                padding: 40px 0;
+            }
+
+            .hero h1 {
+                font-size: 22px;
+            }
+
+            .stats-grid,
+            .features-grid,
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .btn-row {
+                flex-direction: column;
+            }
+
+            .btn {
+                text-align: center;
+            }
+
+            .sources-row {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .nav-links {
+                gap: 16px;
+            }
+
+            .nav-link {
+                font-size: 11px;
+            }
         }
     </style>
 </head>
 
 <body>
 
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="container">
+            <div class="nav-content">
+                <a href="index.html" class="nav-brand">LINESTREAM</a>
+                <div class="nav-links">
+                    <a href="index.html" class="nav-link active">HOME</a>
+                    <a href="docs.html" class="nav-link">DOCS</a>
+                    <a href="pricing.html" class="nav-link">PRICING</a>
+                    <a href="https://arb-mvp-production.up.railway.app/health" target="_blank"
+                        class="nav-link">STATUS</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
     <!-- Top Bar -->
     <div class="top-bar">
         <div class="container">
             <div class="top-bar-content">
                 <div>
-                    <span class="status-live">STATUS: LIVE</span>
+                    <span class="status-live">LIVE</span>
                     <span class="top-bar-meta"> ● LATENCY: 187ms ● API v1.0</span>
                 </div>
                 <div class="top-bar-meta">
-                    SYSTEM_TIME: <span id="system-time">--:--:--</span> UTC
+                    <span id="system-time">--:--:--</span> UTC
                 </div>
             </div>
         </div>
@@ -776,195 +737,86 @@
     <!-- Hero -->
     <section class="hero">
         <div class="container">
-            <div class="system-header">SYSTEM INITIALIZATION</div>
-            <div class="system-title" style="font-size: 20px;">LINESTREAM v1.0</div>
-            <div class="system-status">STATUS: LIVE // GLOBAL // REAL-TIME</div>
-
-            <h1
-                style="font-size: 32px; font-weight: 700; color: var(--text); margin: 32px 0 16px; line-height: 1.3; max-width: 700px;">
-                Real-time odds aggregation and latency analytics API for professional bettors and quantitative trading
-                operations.
-            </h1>
-
-            <div class="terminal-block">
-                <div class="terminal-line">Aggregating multi-book market data</div>
-                <div class="terminal-line">Detecting inefficiencies in under 500ms</div>
-                <div class="terminal-line">Broadcasting actionable edge signals<span class="terminal-cursor"></span>
-                </div>
-            </div>
-
+            <div class="system-tag">REAL-TIME ODDS INTELLIGENCE</div>
+            <h1>Market data infrastructure for professional betting operations.</h1>
+            <p class="hero-sub">Multi-book odds aggregation, line movement tracking, and latency analytics — all via
+                REST API.</p>
             <div class="btn-row">
                 <button class="btn" onclick="openModal()">[ REQUEST_ACCESS ]</button>
-                <a href="https://arb-mvp-production.up.railway.app/health" target="_blank" rel="noopener"
-                    class="btn btn-secondary">[
-                    VIEW_SYSTEM_STATUS ]</a>
+                <a href="docs.html" class="btn btn-secondary">[ VIEW_DOCS ]</a>
             </div>
         </div>
     </section>
 
-    <!-- What Is This -->
-    <section>
+    <!-- Stats + Sources -->
+    <section class="fade-in">
         <div class="container">
-            <div class="section-header">SYSTEM_OVERVIEW</div>
-            <div class="system-output" style="font-size: 15px; line-height: 1.8;">
-                <p style="color: var(--text); margin-bottom: 20px; font-size: 17px;">
-                    <strong>LineStream</strong> provides institutional-grade market data infrastructure for sports
-                    betting operations.
-                </p>
-                <p style="color: var(--text-muted); margin-bottom: 20px;">
-                    We aggregate live odds from multiple sportsbooks, track line movements with millisecond precision,
-                    and measure book-to-book latency so you can identify which markets are lagging.
-                </p>
-                <p style="color: var(--text-muted);">
-                    Built for syndicates, quantitative researchers, and professional bettors who require deterministic
-                    data feeds and can't afford to trade on stale information.
-                </p>
+            <div class="stats-grid stagger-children">
+                <div class="stat-item fade-child">
+                    <div class="stat-value">4</div>
+                    <div class="stat-label">Books</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">6</div>
+                    <div class="stat-label">Sports</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">30s</div>
+                    <div class="stat-label">Refresh</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">99.9%</div>
+                    <div class="stat-label">Uptime</div>
+                </div>
+            </div>
+            <div class="sources-row">
+                <span class="source-item">DraftKings</span>
+                <span class="source-item">FanDuel</span>
+                <span class="source-item">BetMGM</span>
+                <span class="source-item">ESPN Bet</span>
             </div>
         </div>
     </section>
 
-    <!-- Problems - Key Selling Point -->
-    <section>
+    <!-- Features -->
+    <section class="fade-in">
         <div class="container">
-            <div class="section-header" style="font-size: 14px;">MANUAL_WORKFLOW_COST</div>
-            <div class="problems-list" style="font-size: 16px;">
-                <div class="problem-item">Missed early line movement signals</div>
-                <div class="problem-item">Invisible latency delays across books</div>
-                <div class="problem-item">Lost arbitrage windows due to slow data</div>
-                <div class="problem-item">Spreadsheet-based manual workflows</div>
-                <div class="problem-item">Trading decisions on stale data</div>
-            </div>
-            <div class="conclusion" style="font-size: 18px; margin-top: 24px;">SOLUTION: Deterministic real-time market
-                intelligence API</div>
-        </div>
-    </section>
-
-    <!-- Data Sources -->
-    <section>
-        <div class="container">
-            <div class="section-header">DATA_SOURCES.CONNECTED</div>
-            <div class="data-sources">
-                <div class="data-source-header">DATA_SOURCES.STATUS</div>
-                <div class="data-source-item">
-                    <span class="data-source-name">DRAFTKINGS</span>
-                    <span class="data-source-status">✓ CONNECTED</span>
+            <div class="section-header">CAPABILITIES</div>
+            <div class="features-grid stagger-children">
+                <div class="feature-item fade-child">
+                    <div class="feature-title">LIVE ODDS</div>
+                    <div class="feature-desc">Multi-book aggregation with 30s refresh cycles</div>
                 </div>
-                <div class="data-source-item">
-                    <span class="data-source-name">FANDUEL</span>
-                    <span class="data-source-status">✓ CONNECTED</span>
+                <div class="feature-item">
+                    <div class="feature-title">LINE MOVEMENT</div>
+                    <div class="feature-desc">24h rolling history of line changes per event</div>
                 </div>
-                <div class="data-source-item">
-                    <span class="data-source-name">BETMGM</span>
-                    <span class="data-source-status">✓ CONNECTED</span>
+                <div class="feature-item">
+                    <div class="feature-title">LATENCY TRACKING</div>
+                    <div class="feature-desc">Book-to-book latency measurement in ms</div>
                 </div>
-                <div class="data-source-item">
-                    <span class="data-source-name">ESPN_BET</span>
-                    <span class="data-source-status">✓ CONNECTED</span>
+                <div class="feature-item">
+                    <div class="feature-title">EDGE DETECTION</div>
+                    <div class="feature-desc">Automated arbitrage and value signals</div>
                 </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- System Output -->
-    <section>
-        <div class="container">
-            <div class="section-header">CORE_CAPABILITIES</div>
-            <div class="system-output">
-                <div class="output-line">
-                    <span class="output-key">DATA_FEED.STATUS</span>
-                    <span class="output-value">= LIVE</span>
+                <div class="feature-item">
+                    <div class="feature-title">REST API</div>
+                    <div class="feature-desc">Simple JSON endpoints, easy integration</div>
                 </div>
-                <div class="output-line">
-                    <span class="output-key">UPDATE_INTERVAL</span>
-                    <span class="output-value">= 30s</span>
-                </div>
-                <div class="output-line">
-                    <span class="output-key">BOOKS_CONNECTED</span>
-                    <span class="output-value">= 4</span>
-                </div>
-                <div class="output-line">
-                    <span class="output-key">EDGE_DETECTION</span>
-                    <span class="output-value">= ENABLED</span>
-                </div>
-                <div class="output-line">
-                    <span class="output-key">LINE_HISTORY</span>
-                    <span class="output-value">= 24h ROLLING</span>
-                </div>
-                <div class="output-line">
-                    <span class="output-key">LATENCY_TRACKING</span>
-                    <span class="output-value">= ACTIVE</span>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Telemetry -->
-    <section>
-        <div class="container">
-            <div class="section-header">SYSTEM_TELEMETRY</div>
-            <div class="telemetry-grid">
-                <div class="telemetry-item">
-                    <div class="telemetry-value">4</div>
-                    <div class="telemetry-label">BOOKS_ACTIVE</div>
-                </div>
-                <div class="telemetry-item">
-                    <div class="telemetry-value">6</div>
-                    <div class="telemetry-label">SPORTS_TRACKED</div>
-                </div>
-                <div class="telemetry-item">
-                    <div class="telemetry-value">30s</div>
-                    <div class="telemetry-label">REFRESH_RATE</div>
-                </div>
-                <div class="telemetry-item">
-                    <div class="telemetry-value">99.9%</div>
-                    <div class="telemetry-label">UPTIME_30D</div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-
-    <!-- Pricing -->
-    <section>
-        <div class="container">
-            <div class="section-header">ACCESS_TIERS</div>
-            <div class="pricing-grid">
-                <div class="pricing-card active">
-                    <div class="pricing-tier">BETA_ACCESS</div>
-                    <div class="pricing-amount">$29/mo</div>
-                    <div class="pricing-note">LOCKED_FOR_LIFE</div>
-                    <div class="pricing-features">
-                        <div class="pricing-feature">No rate limits during beta</div>
-                        <div class="pricing-feature">Priority onboarding support</div>
-                        <div class="pricing-feature">Direct product feedback channel</div>
-                        <div class="pricing-feature">Full API access</div>
-                    </div>
-                    <button class="btn" style="width: 100%; text-align: center;" onclick="openModal()">[ REQUEST_ACCESS
-                        ]</button>
-                </div>
-                <div class="pricing-card">
-                    <div class="pricing-tier">STANDARD_ACCESS</div>
-                    <div class="pricing-amount">$99/mo</div>
-                    <div class="pricing-note">IN_DEVELOPMENT</div>
-                    <div class="pricing-features">
-                        <div class="pricing-feature">Rate limits apply</div>
-                        <div class="pricing-feature">Standard support</div>
-                        <div class="pricing-feature">Full API access</div>
-                        <div class="pricing-feature">All features included</div>
-                    </div>
-                    <span class="btn btn-disabled" style="width: 100%; text-align: center; display: block;">[ PENDING
-                        ]</span>
+                <div class="feature-item">
+                    <div class="feature-title">6 SPORTS</div>
+                    <div class="feature-desc">NBA, NFL, MLB, NHL, NCAAB, NCAAF</div>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- API Preview -->
-    <section>
+    <section class="fade-in">
         <div class="container">
-            <div class="section-header">API_ENDPOINTS</div>
+            <div class="section-header">API ENDPOINTS</div>
             <div class="api-block">
-                <div class="api-header">AVAILABLE_ROUTES</div>
+                <div class="api-header">ROUTES</div>
                 <div class="api-body">
                     <div class="api-endpoint">
                         <span class="api-method">GET</span>
@@ -992,44 +844,35 @@
         </div>
     </section>
 
-    <!-- Coverage -->
-    <section>
+    <!-- Pricing -->
+    <section class="fade-in">
         <div class="container">
-            <div class="section-header">SYSTEM_COVERAGE</div>
-            <div class="coverage-list">
-                <div class="coverage-item">
-                    <span class="coverage-key">SPORTSBOOKS</span>
-                    <span class="coverage-value">DraftKings, FanDuel, BetMGM, ESPN Bet</span>
+            <div class="section-header">PRICING</div>
+            <div class="pricing-grid">
+                <div class="pricing-card active">
+                    <div class="pricing-tier">BETA ACCESS</div>
+                    <div class="pricing-amount">$29/mo</div>
+                    <div class="pricing-note">LOCKED_FOR_LIFE</div>
+                    <div class="pricing-features">
+                        <div class="pricing-feature">Unlimited API calls</div>
+                        <div class="pricing-feature">Priority support</div>
+                        <div class="pricing-feature">Direct feedback channel</div>
+                    </div>
+                    <button class="btn" style="width: 100%; text-align: center;" onclick="openModal()">[ REQUEST_ACCESS
+                        ]</button>
                 </div>
-                <div class="coverage-item">
-                    <span class="coverage-key">SPORTS</span>
-                    <span class="coverage-value">NBA, NFL, MLB, NHL, NCAAB, NCAAF</span>
+                <div class="pricing-card">
+                    <div class="pricing-tier">STANDARD</div>
+                    <div class="pricing-amount">$99/mo</div>
+                    <div class="pricing-note" style="color: var(--text-muted);">COMING SOON</div>
+                    <div class="pricing-features">
+                        <div class="pricing-feature">Rate limits apply</div>
+                        <div class="pricing-feature">Standard support</div>
+                        <div class="pricing-feature">All features included</div>
+                    </div>
+                    <span class="btn btn-disabled" style="width: 100%; text-align: center; display: block;">[ PENDING
+                        ]</span>
                 </div>
-                <div class="coverage-item">
-                    <span class="coverage-key">MARKETS</span>
-                    <span class="coverage-value">Moneyline, Spread, Totals</span>
-                </div>
-                <div class="coverage-item">
-                    <span class="coverage-key">UPDATE_FREQUENCY</span>
-                    <span class="coverage-value">30-60 seconds</span>
-                </div>
-                <div class="coverage-item">
-                    <span class="coverage-key">EXPANSION</span>
-                    <span class="coverage-value">Driven by beta user feedback</span>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Final CTA -->
-    <section class="final-cta">
-        <div class="container">
-            <div class="final-text">
-                Built by professional bettors and engineers focused on execution, speed, and accuracy.
-            </div>
-            <button class="btn" onclick="openModal()">[ REQUEST_ACCESS ]</button>
-            <div class="final-contact">
-                CONTACT: <a href="mailto:linestreamservice@gmail.com">linestreamservice@gmail.com</a>
             </div>
         </div>
     </section>
@@ -1038,7 +881,7 @@
     <footer>
         <div class="container">
             <div class="footer-content">
-                <div>ODDS_INTELLIGENCE_INTERFACE ● v1.0 ● 2025</div>
+                <div>LINESTREAM v1.0 ● 2025</div>
                 <div><a href="mailto:linestreamservice@gmail.com">linestreamservice@gmail.com</a></div>
             </div>
         </div>
@@ -1054,28 +897,27 @@
             <div class="form-content" id="formContent">
                 <div class="modal-body">
                     <div class="form-group">
-                        <label class="form-label">YOUR_EMAIL</label>
+                        <label class="form-label">EMAIL</label>
                         <input type="email" class="form-input" id="userEmail" placeholder="you@example.com" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">USE_CASE (OPTIONAL)</label>
+                        <label class="form-label">USE CASE (OPTIONAL)</label>
                         <input type="text" class="form-input" id="useCase"
-                            placeholder="Quantitative trading, syndicate ops, etc.">
+                            placeholder="Quantitative trading, syndicate ops...">
                     </div>
                     <div class="form-note">
-                        > Request will be sent to: <span
-                            style="color: var(--accent);">linestreamservice@gmail.com</span>
+                        > Sent to: <span style="color: var(--accent);">linestreamservice@gmail.com</span>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn" style="width: 100%; text-align: center;" onclick="submitRequest()">[
-                        SUBMIT_REQUEST ]</button>
+                    <button class="btn" style="width: 100%; text-align: center;" onclick="submitRequest()">[ SUBMIT
+                        ]</button>
                 </div>
             </div>
             <div class="form-success" id="formSuccess">
                 <div class="form-success-icon">✓</div>
                 <div class="form-success-text">REQUEST_SUBMITTED</div>
-                <div class="form-success-sub">We will contact you within 24 hours.</div>
+                <div class="form-success-sub">We'll contact you within 24 hours.</div>
             </div>
         </div>
     </div>
@@ -1112,35 +954,53 @@
                 return;
             }
 
-            // Send email via mailto as fallback
             const subject = encodeURIComponent('ACCESS_REQUEST');
             const body = encodeURIComponent(`REQUEST_TYPE: Beta Access\n\nEMAIL: ${email}\n\nUSE_CASE: ${useCase || 'Not specified'}`);
-
-            // Open mailto in background
             window.open(`mailto:linestreamservice@gmail.com?subject=${subject}&body=${body}`, '_blank');
 
-            // Show success
             document.getElementById('formContent').classList.add('hidden');
             document.getElementById('formSuccess').classList.add('active');
 
-            // Close modal after 3 seconds
             setTimeout(() => {
                 closeModal();
             }, 3000);
         }
 
-        // Close modal on overlay click
         document.getElementById('accessModal').addEventListener('click', function (e) {
             if (e.target === this) {
                 closeModal();
             }
         });
 
-        // Close modal on Escape key
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') {
                 closeModal();
             }
+        });
+
+        // Scroll animations with Intersection Observer
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        // Observe all fade-in elements
+        document.querySelectorAll('.fade-in').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Also observe stagger-children containers
+        document.querySelectorAll('.stagger-children').forEach(el => {
+            observer.observe(el);
         });
     </script>
 

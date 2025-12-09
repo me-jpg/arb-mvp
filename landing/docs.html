@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="LineStream API Documentation - Endpoints, usage examples, and integration guides.">
+    <title>Documentation | LineStream</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #0B0F14;
+            --bg-elevated: #0F1419;
+            --border: #1E2530;
+            --text: #E6E8EB;
+            --text-muted: #6B7280;
+            --accent: #42FF9E;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--text);
+            background: var(--bg);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 2px);
+            z-index: 9999;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .nav {
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 0;
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .nav-brand {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 12px;
+            letter-spacing: 0.05em;
+            transition: color 150ms;
+        }
+
+        .nav-link:hover {
+            color: var(--accent);
+        }
+
+        .nav-link.active {
+            color: var(--accent);
+        }
+
+        .page-header {
+            padding: 48px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .page-header h1 {
+            font-size: 24px;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .page-header p {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .section {
+            padding: 32px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section h2 {
+            font-size: 14px;
+            color: var(--accent);
+            margin-bottom: 16px;
+            letter-spacing: 0.05em;
+        }
+
+        .section h3 {
+            font-size: 13px;
+            color: var(--text);
+            margin: 24px 0 12px;
+        }
+
+        .section p {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        .code-block {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            padding: 16px;
+            margin: 12px 0;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+
+        .code-block .method {
+            color: var(--accent);
+        }
+
+        .code-block .url {
+            color: var(--text-muted);
+        }
+
+        .endpoint-list {
+            margin: 16px 0;
+        }
+
+        .endpoint {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+        }
+
+        .endpoint:last-child {
+            border-bottom: none;
+        }
+
+        .endpoint-method {
+            color: var(--accent);
+            width: 50px;
+            flex-shrink: 0;
+        }
+
+        .endpoint-path {
+            color: var(--text);
+            flex: 1;
+        }
+
+        .endpoint-desc {
+            color: var(--text-muted);
+        }
+
+        .param-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 12px;
+        }
+
+        .param-table th {
+            text-align: left;
+            color: var(--text-muted);
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .param-table td {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .param-table td:first-child {
+            color: var(--accent);
+        }
+
+        .param-table td:last-child {
+            color: var(--text-muted);
+        }
+
+        footer {
+            padding: 24px 0;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        footer a {
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--accent);
+        }
+
+        @media (max-width: 600px) {
+            .nav-links {
+                gap: 16px;
+            }
+
+            .nav-link {
+                font-size: 11px;
+            }
+
+            .endpoint {
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .endpoint-method {
+                width: auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="nav">
+        <div class="nav-content">
+            <a href="index.html" class="nav-brand">LINESTREAM</a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">HOME</a>
+                <a href="docs.html" class="nav-link active">DOCS</a>
+                <a href="pricing.html" class="nav-link">PRICING</a>
+                <a href="https://arb-mvp-production.up.railway.app/health" target="_blank" class="nav-link">STATUS</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-header">
+        <div class="container">
+            <h1>API Documentation</h1>
+            <p>REST API endpoints for real-time odds data, line movements, and latency analytics.</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="section">
+            <h2>BASE URL</h2>
+            <div class="code-block">
+                <span class="url">https://arb-mvp-production.up.railway.app</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>ENDPOINTS</h2>
+            <div class="endpoint-list">
+                <div class="endpoint">
+                    <span class="endpoint-method">GET</span>
+                    <span class="endpoint-path">/health</span>
+                    <span class="endpoint-desc">System health check</span>
+                </div>
+                <div class="endpoint">
+                    <span class="endpoint-method">GET</span>
+                    <span class="endpoint-path">/api/v1/odds/live/:sport</span>
+                    <span class="endpoint-desc">Live odds by sport</span>
+                </div>
+                <div class="endpoint">
+                    <span class="endpoint-method">GET</span>
+                    <span class="endpoint-path">/api/v1/odds/movement/:eventId</span>
+                    <span class="endpoint-desc">Line movement history</span>
+                </div>
+                <div class="endpoint">
+                    <span class="endpoint-method">GET</span>
+                    <span class="endpoint-path">/api/v1/books/latency</span>
+                    <span class="endpoint-desc">Book latency metrics</span>
+                </div>
+                <div class="endpoint">
+                    <span class="endpoint-method">GET</span>
+                    <span class="endpoint-path">/api/v1/edges</span>
+                    <span class="endpoint-desc">Current edge opportunities</span>
+                </div>
+                <div class="endpoint">
+                    <span class="endpoint-method">GET</span>
+                    <span class="endpoint-path">/api/v1/events</span>
+                    <span class="endpoint-desc">Active events list</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>LIVE ODDS</h2>
+            <h3>GET /api/v1/odds/live/:sport</h3>
+            <p>Returns current odds across all connected sportsbooks for a given sport.</p>
+
+            <table class="param-table">
+                <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>sport</td>
+                    <td>string</td>
+                    <td>nba, nfl, mlb, nhl, ncaab, ncaaf</td>
+                </tr>
+            </table>
+
+            <div class="code-block">
+                <span class="method">GET</span> <span class="url">/api/v1/odds/live/nba</span>
+            </div>
+
+            <p>Example response:</p>
+            <div class="code-block">
+                {
+                "sport": "nba",
+                "timestamp": "2025-01-15T18:30:00Z",
+                "events": [
+                {
+                "eventId": "nba_lal_bos_20250115",
+                "home": "Boston Celtics",
+                "away": "Los Angeles Lakers",
+                "books": {
+                "draftkings": { "homeML": -150, "awayML": +130 },
+                "fanduel": { "homeML": -145, "awayML": +125 }
+                }
+                }
+                ]
+                }
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>LINE MOVEMENT</h2>
+            <h3>GET /api/v1/odds/movement/:eventId</h3>
+            <p>Returns 24h rolling history of line changes for a specific event.</p>
+
+            <table class="param-table">
+                <tr>
+                    <th>Parameter</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                </tr>
+                <tr>
+                    <td>eventId</td>
+                    <td>string</td>
+                    <td>Unique event identifier</td>
+                </tr>
+            </table>
+
+            <div class="code-block">
+                <span class="method">GET</span> <span class="url">/api/v1/odds/movement/nba_lal_bos_20250115</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>LATENCY</h2>
+            <h3>GET /api/v1/books/latency</h3>
+            <p>Returns latency metrics for each connected sportsbook, measured in milliseconds.</p>
+
+            <div class="code-block">
+                {
+                "timestamp": "2025-01-15T18:30:00Z",
+                "books": {
+                "draftkings": { "avgLatencyMs": 145, "lastUpdateMs": 87 },
+                "fanduel": { "avgLatencyMs": 198, "lastUpdateMs": 234 }
+                }
+                }
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>EDGES</h2>
+            <h3>GET /api/v1/edges</h3>
+            <p>Returns current arbitrage and value opportunities detected across books.</p>
+
+            <div class="code-block">
+                {
+                "timestamp": "2025-01-15T18:30:00Z",
+                "edges": [
+                {
+                "eventId": "nba_lal_bos_20250115",
+                "type": "arb",
+                "expectedValue": 1.2,
+                "books": ["draftkings", "fanduel"]
+                }
+                ]
+                }
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <a href="mailto:linestreamservice@gmail.com">linestreamservice@gmail.com</a> ● Questions? Contact us.
+        </div>
+    </footer>
+
+</body>
+
+</html>
