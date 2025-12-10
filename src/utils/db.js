@@ -13,23 +13,37 @@ async function connect() {
     return;
   }
 
-  if (!config.database?.enabled) {
+  // Check if database is enabled (via DATABASE_URL or config)
+  const databaseUrl = process.env.DATABASE_URL;
+  const dbEnabled = databaseUrl || config.database?.enabled;
+
+  if (!dbEnabled) {
     console.log('⚠️  Database disabled in config');
     return;
   }
 
   try {
-    pool = new Pool({
-      host: config.database.host,
-      port: config.database.port,
-      user: config.database.user,
-      password: config.database.password,
-      database: config.database.name
-    });
+    // Use DATABASE_URL if available (Railway standard), otherwise use config
+    if (databaseUrl) {
+      pool = new Pool({
+        connectionString: databaseUrl,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+      });
+      console.log('✅ Connecting to database via DATABASE_URL');
+    } else {
+      pool = new Pool({
+        host: config.database.host,
+        port: config.database.port,
+        user: config.database.user,
+        password: config.database.password,
+        database: config.database.name
+      });
+      console.log('✅ Connecting to database via config params');
+    }
 
     // Test connection
     await pool.query('SELECT NOW()');
-    console.log('✅ Database connected');
+    console.log('✅ Database connected successfully');
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
     pool = null;
@@ -65,9 +79,9 @@ async function insertOddsSnapshots(snapshots) {
     const placeholders = [];
 
     snapshots.forEach((snapshot, idx) => {
-      const offset = idx * 8;
+      const offset = idx * 7;
       placeholders.push(
-        `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8})`
+        `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7})`
       );
 
       values.push(
@@ -77,13 +91,12 @@ async function insertOddsSnapshots(snapshots) {
         snapshot.side,
         snapshot.line || null,
         snapshot.price,
-        snapshot.scrapedAt,
-        snapshot.detectedAt || new Date()
+        snapshot.scrapedAt || snapshot.detectedAt || new Date()
       );
     });
 
     const query = `
-      INSERT INTO odds_snapshots (event_id, book, market_type, side, line, price, scraped_at, detected_at)
+      INSERT INTO odds_snapshots (event_id, book, market_type, side, line, price, captured_at)
       VALUES ${placeholders.join(', ')}
     `;
 
@@ -131,7 +144,7 @@ async function insertLineChanges(changes) {
     });
 
     const query = `
-      INSERT INTO line_changes (event_id, book, market_type, side, old_line, new_line, old_price, new_price, change_type, detected_at)
+      INSERT INTO line_changes (event_id, book, market_type, side, old_line, new_line, old_price, new_price, change_type, created_at)
       VALUES ${placeholders.join(', ')}
     `;
 
@@ -235,12 +248,12 @@ async function getLatestOdds(sport) {
         os.side,
         os.line,
         os.price,
-        os.created_at as timestamp
+        os.captured_at as timestamp
       FROM odds_snapshots os
       JOIN events e ON os.event_id = e.event_id
       WHERE LOWER(e.sport) = LOWER($1)
-      AND os.created_at > NOW() - INTERVAL '5 minutes'
-      ORDER BY os.created_at DESC, os.book ASC
+      AND os.captured_at > NOW() - INTERVAL '5 minutes'
+      ORDER BY os.captured_at DESC, os.book ASC
       LIMIT 500
     `, [sport]);
 
@@ -261,6 +274,8 @@ async function getLineMovements(eventId) {
   }
 
   try {
+    // Note: line_changes usually has created_at, make sure that exists. 
+    // The previous migration file showed 'created_at'.
     const result = await pool.query(`
       SELECT 
         event_id,
@@ -422,6 +437,43 @@ async function getEdges(minEdge = 0, limit = 100) {
   }
 }
 
+/**
+ * Get historical odds for backtesting
+ */
+async function getHistoricalOdds(sport, startDate, endDate, limit = 1000) {
+  if (!pool) {
+    return [];
+  }
+
+  try {
+    const result = await pool.query(`
+      SELECT 
+        os.book,
+        os.event_id,
+        e.sport,
+        e.home_team,
+        e.away_team,
+        e.start_time,
+        os.market_type,
+        os.side,
+        os.line,
+        os.price,
+        os.captured_at as timestamp
+      FROM odds_snapshots os
+      JOIN events e ON os.event_id = e.event_id
+      WHERE LOWER(e.sport) = LOWER($1)
+      AND os.captured_at BETWEEN $2 AND $3
+      ORDER BY os.captured_at DESC
+      LIMIT $4
+    `, [sport, startDate, endDate, limit]);
+
+    return result.rows;
+  } catch (error) {
+    console.error('Error in getHistoricalOdds:', error.message);
+    return [];
+  }
+}
+
 module.exports = {
   connect,
   close,
@@ -436,6 +488,7 @@ module.exports = {
   getEvents,
   upsertEvent,
   getEdges,
+  getHistoricalOdds,
   get connected() {
     return pool !== null;
   }
