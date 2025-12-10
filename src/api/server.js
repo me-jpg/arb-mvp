@@ -5,13 +5,48 @@
  * Exposes endpoints for live odds, line movements, and latency metrics.
  */
 
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const db = require('../utils/db');
-const config = require('../../config');
-const { startWsMetricsServer } = require('../server/wsMetricsServer');
+console.log('=== SERVER STARTING ===');
+console.log('Node version:', process.version);
+console.log('Environment:', process.env.NODE_ENV);
+console.log('PORT:', process.env.PORT);
+
+process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION:', err);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (err) => {
+    console.error('UNHANDLED REJECTION:', err);
+    process.exit(1);
+});
+
+let express, cors, helmet, db, config, startWsMetricsServer;
+
+try {
+    require('dotenv').config();
+    console.log('✓ dotenv loaded');
+
+    express = require('express');
+    console.log('✓ Express loaded');
+
+    cors = require('cors');
+    console.log('✓ cors loaded');
+
+    helmet = require('helmet');
+    console.log('✓ helmet loaded');
+
+    db = require('../utils/db');
+    console.log('✓ db loaded');
+
+    config = require('../../config');
+    console.log('✓ config loaded');
+
+    ({ startWsMetricsServer } = require('../server/wsMetricsServer'));
+    console.log('✓ wsMetricsServer loaded');
+} catch (err) {
+    console.error('✗ Failed to load basic dependencies:', err.message);
+    process.exit(1);
+}
 
 const app = express();
 const PORT = process.env.API_PORT || process.env.PORT || 3000;
@@ -55,8 +90,16 @@ app.get('/health', (req, res) => {
 // ============================================
 // ADMIN ROUTES
 // ============================================
-const adminRoutes = require('./admin-routes');
-const path = require('path');
+let adminRoutes, path;
+try {
+    adminRoutes = require('./admin-routes');
+    console.log('✓ adminRoutes loaded');
+    path = require('path');
+    console.log('✓ path loaded');
+} catch (err) {
+    console.error('✗ Failed to load admin dependencies:', err.message);
+    process.exit(1);
+}
 
 app.use('/api/v1/admin', adminRoutes);
 
@@ -96,6 +139,50 @@ app.get('/api/v1/odds/live/:sport', async (req, res) => {
     } catch (error) {
         console.error('Error fetching live odds:', error);
         res.status(500).json({ error: 'Failed to fetch live odds' });
+    }
+});
+
+/**
+ * GET /api/v1/odds/history
+ * Get historical odds for backtesting
+ */
+app.get('/api/v1/odds/history', async (req, res) => {
+    try {
+        const { sport, start, end, limit = 1000 } = req.query;
+
+        if (!sport) {
+            return res.status(400).json({ error: 'Sport parameter is required' });
+        }
+
+        const validSports = ['nfl', 'nba', 'mlb', 'nhl', 'ncaab', 'ncaaf'];
+        if (!validSports.includes(sport.toLowerCase())) {
+            return res.status(400).json({ error: 'Invalid sport', validSports });
+        }
+
+        // Default to last 24 hours if no dates provided
+        const endDate = end ? new Date(end) : new Date();
+        const startDate = start ? new Date(start) : new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            return res.status(400).json({ error: 'Invalid date format' });
+        }
+
+        const odds = await db.getHistoricalOdds(
+            sport.toLowerCase(),
+            startDate.toISOString(),
+            endDate.toISOString(),
+            parseInt(limit)
+        );
+
+        res.json({
+            sport: sport.toLowerCase(),
+            range: { start: startDate.toISOString(), end: endDate.toISOString() },
+            count: odds.length,
+            data: odds
+        });
+    } catch (error) {
+        console.error('Error fetching historical odds:', error);
+        res.status(500).json({ error: 'Failed to fetch historical odds' });
     }
 });
 
@@ -208,8 +295,16 @@ app.use((err, req, res, next) => {
 // ============================================
 // START SERVER
 // ============================================
-const cron = require('node-cron');
-const { main: runScrapeJob } = require('../jobs/scrape-odds');
+let cron, runScrapeJob;
+try {
+    cron = require('node-cron');
+    console.log('✓ node-cron loaded');
+    ({ main: runScrapeJob } = require('../jobs/scrape-odds'));
+    console.log('✓ scrape-odds loaded');
+} catch (err) {
+    console.error('✗ Failed to load cron dependencies:', err.message);
+    process.exit(1);
+}
 
 // ... existing code ...
 
@@ -235,7 +330,9 @@ async function startServer() {
             }
         });
 
+        console.log('About to start server on port:', PORT);
         app.listen(PORT, () => {
+            console.log(`✓ Server successfully listening on port ${PORT}`);
             // ... existing log lines ...
             console.log(`\n${'='.repeat(50)}`);
             console.log(`🚀 Sports Betting Odds API v1.0.0`);
@@ -251,12 +348,16 @@ async function startServer() {
             console.log(`  Edges:      http://localhost:${PORT}/api/v1/edges`);
 
             // Start WebSocket Metrics Server
-            try {
-                const wsPort = process.env.WS_METRICS_PORT || 4090;
-                startWsMetricsServer({ port: wsPort });
-                console.log(`  Streaming:  ws://localhost:${wsPort}`);
-            } catch (err) {
-                console.error('Failed to start WS Metrics Server:', err);
+            if (process.env.ENABLE_WEBSOCKET === 'true') {
+                try {
+                    const wsPort = process.env.WS_METRICS_PORT || 4090;
+                    startWsMetricsServer({ port: wsPort });
+                    console.log(`  Streaming:  ws://localhost:${wsPort}`);
+                } catch (err) {
+                    console.warn('⚠️  Failed to init WS Metrics Server:', err.message);
+                }
+            } else {
+                console.log('ℹ️  WebSocket server disabled (set ENABLE_WEBSOCKET=true to enable)');
             }
 
             console.log(`${'='.repeat(50)}\n`);
@@ -270,3 +371,7 @@ async function startServer() {
 // ... rest of file ...
 
 module.exports = { app, startServer };
+
+if (require.main === module) {
+    startServer();
+}

@@ -167,6 +167,10 @@ function startWsMetricsServer(options = {}) {
     // Create WebSocket server
     const wss = new WebSocket.Server({ server });
 
+    wss.on('error', (err) => {
+        console.error('[ws-metrics] WebSocket Server error:', err.message);
+    });
+
     const clients = new Set();
 
     wss.on('connection', (ws) => {
@@ -284,6 +288,15 @@ function startWsMetricsServer(options = {}) {
             console.error('[ws-metrics] Failed to build/send metrics:', err.message);
         }
     }, intervalMs);
+
+    server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.warn(`[ws-metrics] Port ${port} is already in use.`);
+            console.warn('[ws-metrics] Metrics server will not start.');
+        } else {
+            console.error('[ws-metrics] Server error:', err);
+        }
+    });
 
     server.listen(port, () => {
         console.log(`[ws-metrics] listening on ws://localhost:${port}`);
