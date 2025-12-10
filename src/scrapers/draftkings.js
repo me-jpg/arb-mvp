@@ -1,9 +1,12 @@
 // src/scrapers/draftkings.js
-// Enhanced scraper: NFL Moneyline + Spread + Total
+// NBA scraper for DraftKings Sportsbook
 
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const config = require('../../config');
 const Helpers = require('../utils/helpers');
+
+puppeteer.use(StealthPlugin());
 
 class DraftKingsScraper {
   constructor(browser = null) {
@@ -12,14 +15,14 @@ class DraftKingsScraper {
   }
 
   async scrape() {
-    // Create browser if not provided
     if (!this.browser) {
       this.browser = await puppeteer.launch({
-        headless: config.headless,
+        headless: config.headless !== false,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
-          '--disable-blink-features=AutomationControlled'
+          '--disable-blink-features=AutomationControlled',
+          '--disable-dev-shm-usage'
         ]
       });
       this.ownsBrowser = true;
@@ -29,18 +32,11 @@ class DraftKingsScraper {
 
     try {
       const page = await this.browser.newPage();
-
-      await page.evaluateOnNewDocument(() => {
-        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-      });
-
-      await page.setUserAgent(
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
-      );
+      await page.setViewport({ width: 1920, height: 1080 });
 
       await page.goto('https://sportsbook.draftkings.com/leagues/basketball/nba', {
         waitUntil: 'domcontentloaded',
-        timeout: 20000  // 20 second timeout
+        timeout: 20000
       });
 
       await Helpers.delay(15000, 18000);
@@ -50,174 +46,86 @@ class DraftKingsScraper {
         const pageText = document.body.innerText;
         const lines = pageText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
-        // Find all "AT" markers (one per game)
-        const atIndices = [];
-        lines.forEach((line, idx) => {
-          if (line === 'AT') {
-            atIndices.push(idx);
-          }
-        });
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i] === 'AT') {
+            let awayTeam = lines[i - 1];
+            let homeTeam = lines[i + 1];
 
-        // Extract ALL odds from page
-        const oddsPattern = /[+\-−]\d{3,4}/g;
-        const allOddsMatches = [...pageText.matchAll(oddsPattern)];
-        const allOdds = allOddsMatches.map(m => {
-          const cleaned = m[0].replace('−', '-');
-          return parseInt(cleaned);
-        });
+            // Check if previous line is a score (pure integer, no decimals or +/-)
+            if (/^\d+$/.test(awayTeam)) {
+              awayTeam = lines[i - 2];
+            }
 
-        // Extract spread values (look for numbers like "-3.5", "PK", "+7.5")
-        const spreadPattern = /([+\-−]?\d+\.?\d*)\s*(?=\s*[+\-−]\d{3})/g;
-        const spreadMatches = [...pageText.matchAll(spreadPattern)];
+            // Check if next line is a score
+            if (/^\d+$/.test(homeTeam)) {
+              homeTeam = lines[i + 2];
+            }
 
-        // Try to extract game times from DOM elements
-        // DraftKings shows times like "SAT 1:00 PM" or "SUN 4:25 PM"
-        const timePattern = /(MON|TUE|WED|THU|FRI|SAT|SUN)\s+(\d{1,2}:\d{2}\s*(?:AM|PM))/gi;
-        const timeMatches = [...pageText.matchAll(timePattern)];
+            if (!awayTeam || !homeTeam || awayTeam.length < 3 || homeTeam.length < 3) {
+              continue;
+            }
 
-        // Helper to convert DK time format to ISO
-        function parseGameTime(dayStr, timeStr) {
-          try {
-            const now = new Date();
-            const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+            // Find odds start - skip score if present
+            let oddsStart = i + 2;
+            if (/^\d+$/.test(lines[i + 2])) {
+              oddsStart = i + 3;
+            }
 
-            const dayMap = {
-              'SUN': 0, 'MON': 1, 'TUE': 2, 'WED': 3,
-              'THU': 4, 'FRI': 5, 'SAT': 6
-            };
+            const isOdds = (str) => /^[+\-−]\d{3,4}$/.test(str);
+            const isNumber = (str) => /^[+\-]?\d+\.?\d*$/.test(str);
 
-            const targetDay = dayMap[dayStr.toUpperCase()];
-            if (targetDay === undefined) return null;
+            const values = [];
+            for (let j = oddsStart; j < oddsStart + 30 && values.length < 10; j++) {
+              const line = lines[j];
+              if (line === 'O' || line === 'U') continue;
+              if (line === 'More' || line === 'Bets') break;
+              if (line === 'AT') break;
 
-            // Calculate days until target day
-            let daysAhead = targetDay - currentDay;
-            if (daysAhead < 0) daysAhead += 7; // Next week
-            if (daysAhead === 0 && now.getHours() > 12) daysAhead = 7; // Past today, assume next week
+              if (isOdds(line)) {
+                values.push(parseInt(line.replace('−', '-')));
+              } else if (isNumber(line)) {
+                values.push(parseFloat(line));
+              }
+            }
 
-            // Parse time (e.g., "1:00 PM")
-            const timeParts = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-            if (!timeParts) return null;
-
-            let hours = parseInt(timeParts[1]);
-            const minutes = parseInt(timeParts[2]);
-            const isPM = timeParts[3].toUpperCase() === 'PM';
-
-            if (isPM && hours !== 12) hours += 12;
-            if (!isPM && hours === 12) hours = 0;
-
-            // Create date
-            const gameDate = new Date(now);
-            gameDate.setDate(gameDate.getDate() + daysAhead);
-            gameDate.setHours(hours, minutes, 0, 0);
-
-            return gameDate.toISOString();
-          } catch (error) {
-            return null;
+            // Expected: awaySpread, awaySpreadOdds, total, overOdds, awayML, homeSpread, homeSpreadOdds, total, underOdds, homeML
+            if (values.length >= 10) {
+              games.push({
+                awayTeam,
+                homeTeam,
+                gameTime: new Date().toISOString(),
+                markets: {
+                  moneyline: {
+                    awayOdds: values[4],
+                    homeOdds: values[9]
+                  },
+                  spread: {
+                    awayLine: values[0],
+                    awayOdds: values[1],
+                    homeLine: values[5],
+                    homeOdds: values[6]
+                  },
+                  total: {
+                    line: values[2],
+                    overOdds: values[3],
+                    underOdds: values[8]
+                  }
+                }
+              });
+            }
           }
         }
-
-        // DraftKings pattern per game:
-        // Index 0: away spread odds
-        // Index 1: home spread odds  
-        // Index 2: away moneyline odds
-        // Index 3: over odds
-        // Index 4: under odds
-        // Index 5: home moneyline odds
-
-        atIndices.forEach((atIdx, gameIndex) => {
-          const awayTeam = lines[atIdx - 1];
-          const homeTeam = lines[atIdx + 1];
-
-          // Try to find game time for this game
-          let gameTime = null;
-          if (timeMatches[gameIndex]) {
-            gameTime = parseGameTime(timeMatches[gameIndex][1], timeMatches[gameIndex][2]);
-          }
-
-          // Base index for this game's odds (6 odds per game)
-          const baseIdx = gameIndex * 6;
-
-          // Extract all market data
-          const awaySpreadOdds = allOdds[baseIdx + 0];
-          const homeSpreadOdds = allOdds[baseIdx + 1];
-          const awayMLOdds = allOdds[baseIdx + 2];
-          const overOdds = allOdds[baseIdx + 3];
-          const underOdds = allOdds[baseIdx + 4];
-          const homeMLOdds = allOdds[baseIdx + 5];
-
-          // Try to extract spread values
-          // DK shows spread like: "LAR -3.5 -110" and "CAR +3.5 -110"
-          // We need to parse these from the text
-          let awaySpread = null;
-          let homeSpread = null;
-          let totalLine = null;
-
-          // Look for spread numbers near the team names
-          // This is a simplified extraction - may need refinement
-          const gameSection = lines.slice(atIdx - 5, atIdx + 10).join(' ');
-          const spreadNums = gameSection.match(/[+\-−]?\d+\.5/g);
-
-          if (spreadNums && spreadNums.length >= 2) {
-            awaySpread = parseFloat(spreadNums[0].replace('−', '-'));
-            homeSpread = parseFloat(spreadNums[1].replace('−', '-'));
-          }
-
-          // Total line extraction
-          // Look for "O 46.5" or "U 46.5" pattern
-          const totalMatch = gameSection.match(/[OU]\s+(\d+\.5)/);
-          if (totalMatch) {
-            totalLine = parseFloat(totalMatch[1]);
-          }
-
-          // Build market object
-          const markets = {};
-
-          // Moneyline
-          if (awayMLOdds !== undefined && homeMLOdds !== undefined) {
-            markets.moneyline = {
-              awayOdds: awayMLOdds,
-              homeOdds: homeMLOdds
-            };
-          }
-
-          // Spread
-          if (awaySpread !== null && homeSpread !== null &&
-            awaySpreadOdds !== undefined && homeSpreadOdds !== undefined) {
-            markets.spread = {
-              awayLine: awaySpread,
-              awayOdds: awaySpreadOdds,
-              homeLine: homeSpread,
-              homeOdds: homeSpreadOdds
-            };
-          }
-
-          // Total
-          if (totalLine !== null && overOdds !== undefined && underOdds !== undefined) {
-            markets.total = {
-              line: totalLine,
-              overOdds: overOdds,
-              underOdds: underOdds
-            };
-          }
-
-          if (awayTeam && homeTeam && Object.keys(markets).length > 0) {
-            games.push({
-              awayTeam,
-              homeTeam,
-              gameTime: gameTime || new Date().toISOString(), // Fallback to now if not found
-              markets
-            });
-          }
-        });
 
         return games;
       });
 
+      await page.close();
+
     } catch (error) {
+      console.error('DraftKings scraper error:', error.message);
       Helpers.logError(error, 'DraftKingsScraper');
       throw error;
     } finally {
-      // Only close browser if we created it
       if (this.ownsBrowser && this.browser) {
         await this.browser.close();
       }
