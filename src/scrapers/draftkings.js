@@ -31,16 +31,20 @@ class DraftKingsScraper {
     let results = [];
 
     try {
+      console.log('DraftKings: Launching browser...');
       const page = await this.browser.newPage();
       await page.setViewport({ width: 1920, height: 1080 });
 
+      console.log('DraftKings: Navigating to NBA page...');
       await page.goto('https://sportsbook.draftkings.com/leagues/basketball/nba', {
         waitUntil: 'domcontentloaded',
-        timeout: 20000
+        timeout: 30000
       });
 
-      await Helpers.delay(15000, 18000);
+      console.log('DraftKings: Waiting for content to load...');
+      await Helpers.delay(18000, 20000);
 
+      console.log('DraftKings: Extracting games...');
       results = await page.evaluate(() => {
         const games = [];
         const pageText = document.body.innerText;
@@ -119,6 +123,7 @@ class DraftKingsScraper {
         return games;
       });
 
+      console.log(`DraftKings: Extracted ${results.length} games`);
       await page.close();
 
     } catch (error) {
