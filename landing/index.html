@@ -145,6 +145,40 @@
             color: var(--text-muted);
         }
 
+        /* Scarcity & Proof */
+        .scarcity-tag {
+            display: inline-flex;
+            align-items: center;
+            font-size: 11px;
+            color: var(--warning);
+            font-weight: 600;
+            background: rgba(255, 176, 32, 0.1);
+            padding: 0 12px;
+            border: 1px solid rgba(255, 176, 32, 0.2);
+            height: 42px;
+            /* Match button height */
+        }
+
+        .social-proof {
+            margin-top: 32px;
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .proof-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .proof-dot {
+            color: var(--border);
+            font-size: 8px;
+        }
+
         /* Hero */
         .hero {
             padding: 64px 0 48px;
@@ -737,13 +771,18 @@
     <!-- Hero -->
     <section class="hero">
         <div class="container">
-            <div class="system-tag">REAL-TIME ODDS INTELLIGENCE</div>
-            <h1>Market data infrastructure for professional betting operations.</h1>
-            <p class="hero-sub">Multi-book odds aggregation, line movement tracking, and latency analytics — all via
-                REST API.</p>
+            <div class="system-tag">● OPERATIONAL_STATUS: OPTIMAL</div>
+            <h1>Beat the books with real-time odds intelligence.</h1>
+            <p class="hero-sub">Automated arbitrage detection, line movement tracking, and sub-second latency feeds from
+                40+ sportsbooks.</p>
             <div class="btn-row">
-                <button class="btn" onclick="openModal()">[ REQUEST_ACCESS ]</button>
-                <a href="docs.html" class="btn btn-secondary">[ VIEW_DOCS ]</a>
+                <button class="btn" onclick="openModal()">[ GET_BETA_ACCESS ]</button>
+                <div class="scarcity-tag">⚠️ 14 SPOTS LEFT IN Q1 COHORT</div>
+            </div>
+            <div class="social-proof">
+                <span class="proof-item">As seen on <span style="color: #FF4500;">r/sportsbook</span></span>
+                <span class="proof-dot">●</span>
+                <span class="proof-item">Trusted by 120+ Beta Users</span>
             </div>
         </div>
     </section>
