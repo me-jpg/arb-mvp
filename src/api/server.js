@@ -11,6 +11,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const db = require('../utils/db');
 const config = require('../../config');
+const { startWsMetricsServer } = require('../server/wsMetricsServer');
 
 const app = express();
 const PORT = process.env.API_PORT || process.env.PORT || 3000;
@@ -207,6 +208,11 @@ app.use((err, req, res, next) => {
 // ============================================
 // START SERVER
 // ============================================
+const cron = require('node-cron');
+const { main: runScrapeJob } = require('../jobs/scrape-odds');
+
+// ... existing code ...
+
 async function startServer() {
     try {
         // Connect to database
@@ -217,11 +223,25 @@ async function startServer() {
             console.log('⚠️  Database disabled - API will return empty data');
         }
 
+        // Schedule Scrape Job (Every 60 seconds)
+        console.log('⏰ Initializing Scraper Cron Job (Every 60s)...');
+        cron.schedule('* * * * *', async () => {
+            console.log('[Cron] Triggering scrape job...');
+            try {
+                // We restart standard logging for the cron mainly
+                await runScrapeJob(true); // true = keepAlive (don't exit process)
+            } catch (err) {
+                console.error('[Cron] Scrape job failed:', err);
+            }
+        });
+
         app.listen(PORT, () => {
+            // ... existing log lines ...
             console.log(`\n${'='.repeat(50)}`);
             console.log(`🚀 Sports Betting Odds API v1.0.0`);
             console.log(`${'='.repeat(50)}`);
             console.log(`Server running on port ${PORT}`);
+            console.log(`Cron Scraper: ACTIVE (* * * * *)`);
             console.log(`\nEndpoints:`);
             console.log(`  Health:     http://localhost:${PORT}/health`);
             console.log(`  Live Odds:  http://localhost:${PORT}/api/v1/odds/live/:sport`);
@@ -229,6 +249,16 @@ async function startServer() {
             console.log(`  Latency:    http://localhost:${PORT}/api/v1/books/latency`);
             console.log(`  Events:     http://localhost:${PORT}/api/v1/events`);
             console.log(`  Edges:      http://localhost:${PORT}/api/v1/edges`);
+
+            // Start WebSocket Metrics Server
+            try {
+                const wsPort = process.env.WS_METRICS_PORT || 4090;
+                startWsMetricsServer({ port: wsPort });
+                console.log(`  Streaming:  ws://localhost:${wsPort}`);
+            } catch (err) {
+                console.error('Failed to start WS Metrics Server:', err);
+            }
+
             console.log(`${'='.repeat(50)}\n`);
         });
     } catch (error) {
@@ -237,18 +267,6 @@ async function startServer() {
     }
 }
 
-// Handle graceful shutdown
-process.on('SIGINT', async () => {
-    console.log('\n🛑 Shutting down...');
-    if (db.connected) {
-        await db.close();
-    }
-    process.exit(0);
-});
-
-// Start if run directly
-if (require.main === module) {
-    startServer();
-}
+// ... rest of file ...
 
 module.exports = { app, startServer };
