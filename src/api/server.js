@@ -16,7 +16,16 @@ const app = express();
 const PORT = process.env.API_PORT || process.env.PORT || 3000;
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "https:"],
+        },
+    },
+}));
 app.use(cors());
 app.use(express.json());
 
@@ -40,6 +49,19 @@ app.get('/health', (req, res) => {
         version: '1.0.0',
         database: db.connected ? 'connected' : 'disconnected'
     });
+});
+
+// ============================================
+// ADMIN ROUTES
+// ============================================
+const adminRoutes = require('./admin-routes');
+const path = require('path');
+
+app.use('/api/v1/admin', adminRoutes);
+
+// Serve Admin Dashboard HTML
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, '../admin/dashboard.html'));
 });
 
 // ============================================

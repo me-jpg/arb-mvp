@@ -47,7 +47,7 @@ function formatUptime(ms) {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
-  
+
   if (hours > 0) return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
   if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
   return `${seconds}s`;
@@ -58,7 +58,7 @@ function formatUptime(ms) {
  */
 async function initializeBrowsers() {
   console.log('🌐 Initializing browsers...');
-  
+
   const browserPromises = [];
   const enabledBooks = config.highFrequency.books;
 
@@ -115,17 +115,17 @@ async function initializeBrowsers() {
  */
 async function closeBrowsers() {
   console.log('🌐 Closing browsers...');
-  
+
   const closePromises = Object.entries(browsers)
     .filter(([_, browser]) => browser !== null)
-    .map(([book, browser]) => 
+    .map(([book, browser]) =>
       browser.close().catch(err => {
         console.error(`  ❌ Error closing ${book} browser:`, err.message);
       })
     );
 
   await Promise.all(closePromises);
-  
+
   // Clear browser references
   Object.keys(browsers).forEach(key => {
     browsers[key] = null;
@@ -137,11 +137,11 @@ async function closeBrowsers() {
  */
 async function restartBrowsers() {
   console.log('\n🔄 RESTARTING BROWSERS (memory management)...');
-  
+
   await closeBrowsers();
   await sleep(2000); // Wait 2 seconds before restarting
   await initializeBrowsers();
-  
+
   console.log('✅ Browsers restarted successfully\n');
 }
 
@@ -177,6 +177,10 @@ async function initialize() {
 
   console.log('\n⚡ High-frequency arbitrage tracking started...\n');
 }
+
+// Parse CLI args
+const args = process.argv.slice(2);
+const MODE_ONCE = args.includes('--once');
 
 async function runLoop() {
   const INTERVAL_MS = config.highFrequency.intervalMs;
@@ -250,11 +254,11 @@ async function runLoop() {
 
       const cycleDuration = Date.now() - cycleStart;
       totalCycleTimeMs += cycleDuration;
-      
+
       // Calculate utilization
       const utilization = cycleDuration / INTERVAL_MS;
       const utilizationPct = (utilization * 100).toFixed(1);
-      
+
       console.log(`\n⏱️  Cycle time: ${cycleDuration}ms | Utilization: ${utilizationPct}%`);
 
       // Enhanced session stats
@@ -266,25 +270,30 @@ async function runLoop() {
       console.log(`📊 Session: ${totalArbitrage} arb | ${totalChanges} changes | ${totalOdds} odds | ${cycleCount} cycles | ${formatUptime(uptime)}`);
       console.log(`📈 Avg cycle: ${avgCycleTimeMs}ms | Avg util: ${avgUtilization}%`);
 
+      // Log to file for dashboard
+      logger.logCycleSummary({
+        cycleNumber: cycleCount,
+        oddsChecked: stats.oddsChecked,
+        changesDetected: stats.changesDetected,
+        arbitrageFound: stats.arbitrageFound,
+        durationMs: cycleDuration,
+        timestamp: new Date().toISOString()
+      });
+
       // Show next restart countdown
       const cyclesUntilRestart = MAX_CYCLES_BEFORE_RESTART - (cycleCount % MAX_CYCLES_BEFORE_RESTART);
       if (cyclesUntilRestart <= 10 && cyclesUntilRestart > 0) {
         console.log(`🔄 Browser restart in ${cyclesUntilRestart} cycles`);
       }
 
-      // Health monitoring: track consecutive overload cycles
+      // Health monitoring
       const maxUtil = config.highFrequency.maxUtilizationWarning || 1.5;
       const warnCycles = config.highFrequency.utilizationWarnCycles || 3;
-      
+
       if (utilization > maxUtil) {
         consecutiveOverloadCycles++;
         if (consecutiveOverloadCycles >= warnCycles) {
           console.log(`\n⚠️  HF OVERLOADED: ${consecutiveOverloadCycles} consecutive cycles > ${(maxUtil * 100).toFixed(0)}% utilization`);
-          console.log(`   Current: ${cycleDuration}ms cycle, ${INTERVAL_MS}ms interval`);
-          console.log(`   Suggestions:`);
-          console.log(`     - Increase HF_INTERVAL_MS (try ${Math.ceil(avgCycleTimeMs / 1000) * 1000 + 2000})`);
-          console.log(`     - Reduce HF_MAX_EVENTS (currently ${config.highFrequency.maxEvents})`);
-          console.log(`     - Limit markets or books`);
         }
       } else {
         consecutiveOverloadCycles = 0;
@@ -297,15 +306,16 @@ async function runLoop() {
         console.log(`🟡 Near capacity (${utilizationPct}%)`);
       }
 
-      // Warn if cycle time is very long (absolute threshold)
-      if (cycleDuration > 30000) {
-        console.log(`⚠️  WARNING: Cycle exceeded 30s - consider reducing load`);
+      // If running in ONCE mode, break after 1 cycle
+      if (MODE_ONCE) {
+        console.log('\n✅ One-time scrape completed successfully');
+        break;
       }
 
       // Wait for next cycle
       const elapsed = Date.now() - cycleStart;
       const delay = Math.max(0, INTERVAL_MS - elapsed);
-      
+
       if (delay > 0) {
         await sleep(delay);
       }
@@ -313,10 +323,15 @@ async function runLoop() {
     } catch (error) {
       console.error('❌ Cycle error:', error.message);
       logger.logError('HF Cycle', error);
-      
+
+      // If ONCE mode and we hit an error, exit with error
+      if (MODE_ONCE) {
+        throw error;
+      }
+
       const elapsed = Date.now() - cycleStart;
       const delay = Math.max(0, INTERVAL_MS - elapsed);
-      
+
       if (delay > 0) {
         await sleep(delay);
       }
@@ -340,7 +355,7 @@ async function shutdown() {
   console.log(`   Total changes detected: ${totalChanges}`);
   console.log(`   Total odds checked: ${totalOdds}`);
   console.log(`   Uptime: ${formatUptime(Date.now() - startTime)}`);
-  
+
   process.exit(0);
 }
 

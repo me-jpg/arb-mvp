@@ -64,6 +64,7 @@
     "diagnostics:check": "node src/diagnostics/run-system-check.js",
     "api:start": "node src/api/server.js",
     "api:dev": "node src/api/server.js",
+    "scrape:odds": "node src/jobs/scrape-odds.js",
     "start": "node src/api/server.js"
   },
   "keywords": [],

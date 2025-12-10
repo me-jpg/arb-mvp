@@ -352,6 +352,41 @@ async function getEvents(sport = null, limit = 50) {
 }
 
 /**
+ * Upsert event (insert or update)
+ */
+async function upsertEvent(event) {
+  if (!pool) {
+    throw new Error('Database not connected');
+  }
+
+  try {
+    const query = `
+      INSERT INTO events (event_id, sport, home_team, away_team, start_time, updated_at)
+      VALUES ($1, $2, $3, $4, $5, NOW())
+      ON CONFLICT (event_id) 
+      DO UPDATE SET 
+        start_time = EXCLUDED.start_time,
+        updated_at = NOW()
+      RETURNING *
+    `;
+
+    const values = [
+      event.eventId,
+      event.sport,
+      event.homeTeam,
+      event.awayTeam,
+      event.startTime ? new Date(event.startTime) : null
+    ];
+
+    const result = await pool.query(query, values);
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error in upsertEvent:', error.message);
+    throw error;
+  }
+}
+
+/**
  * Get detected edges/arbitrages
  */
 async function getEdges(minEdge = 0, limit = 100) {
@@ -399,6 +434,7 @@ module.exports = {
   getLineMovements,
   getLatencyMetrics,
   getEvents,
+  upsertEvent,
   getEdges,
   get connected() {
     return pool !== null;
