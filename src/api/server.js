@@ -310,10 +310,12 @@ try {
 
 async function startServer() {
     try {
-        // Connect to database
-        if (config.database?.enabled) {
+        // Connect to database if DATABASE_URL is set OR if enabled in config
+        const databaseUrl = process.env.DATABASE_URL;
+        const shouldConnectDb = databaseUrl || config.database?.enabled;
+
+        if (shouldConnectDb) {
             await db.connect();
-            console.log('✅ Database connected');
         } else {
             console.log('⚠️  Database disabled - API will return empty data');
         }
