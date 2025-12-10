@@ -9,7 +9,7 @@ const BOOKS = {
     FANDUEL: 'fanduel'
 };
 
-async function runScraper(ScraperClass, bookName, sport = 'nfl') {
+async function runScraper(ScraperClass, bookName, sport = 'nba') {
     console.log(`\nStarting ${bookName} scraper for ${sport}...`);
     const start = Date.now();
     let scraper = null;
@@ -52,12 +52,12 @@ async function saveToDatabase(results) {
             // For MVP, we'll just squash spaces and lowercase
             const home = game.homeTeam.toLowerCase().replace(/\s+/g, '');
             const away = game.awayTeam.toLowerCase().replace(/\s+/g, '');
-            const eventId = `nfl-${away}-${home}`; // Assumptions: NFL only for now
+            const eventId = `nba-${away}-${home}`; // Updated to NBA
 
             // 2. Upsert Event
             await db.upsertEvent({
                 eventId,
-                sport: 'nfl',
+                sport: 'nba',
                 homeTeam: game.homeTeam,
                 awayTeam: game.awayTeam,
                 startTime: game.gameTime
@@ -128,15 +128,17 @@ function createSnapshot(eventId, book, marketType, side, line, price, now) {
     };
 }
 
-async function main() {
+async function main(keepAlive = false) {
     console.log(`[${new Date().toISOString()}] Starting Scrape Job`);
 
     try {
-        // 1. Connect to DB
-        if (!process.env.DATABASE_URL && !process.env.DB_HOST) {
-            console.warn('⚠️  No DATABASE_URL or DB config found. Running in dry-run mode (no DB saves).');
-        } else {
-            await db.connect();
+        // 1. Connect to DB (if not already connected)
+        if (!db.connected) {
+            if (!process.env.DATABASE_URL && !process.env.DB_HOST) {
+                console.warn('⚠️  No DATABASE_URL or DB config found. Running in dry-run mode (no DB saves).');
+            } else {
+                await db.connect();
+            }
         }
 
         // 2. Run Scrapers Sequentially
@@ -159,13 +161,18 @@ async function main() {
         }
 
         console.log('✅ Job completed successfully');
-        process.exit(0);
+
+        if (!keepAlive) {
+            process.exit(0);
+        }
 
     } catch (error) {
         console.error('❌ Job failed:', error);
-        process.exit(1);
+        if (!keepAlive) {
+            process.exit(1);
+        }
     } finally {
-        if (db.connected) await db.close();
+        if (!keepAlive && db.connected) await db.close();
     }
 }
 
@@ -173,3 +180,5 @@ async function main() {
 if (require.main === module) {
     main();
 }
+
+module.exports = { main };
