@@ -772,17 +772,17 @@
     <section class="hero">
         <div class="container">
             <div class="system-tag">● OPERATIONAL_STATUS: OPTIMAL</div>
-            <h1>Beat the books with real-time odds intelligence.</h1>
-            <p class="hero-sub">Automated arbitrage detection, line movement tracking, and sub-second latency feeds from
-                40+ sportsbooks.</p>
+            <h1>The high-frequency data feed for independent quants.</h1>
+            <p class="hero-sub">Stop betting on 3-minute old lines. Get real-time WebSocket odds, latency analytics,
+                and arbitrage signals from major US sportsbooks.</p>
             <div class="btn-row">
-                <button class="btn" onclick="openModal()">[ GET_BETA_ACCESS ]</button>
-                <div class="scarcity-tag">⚠️ 14 SPOTS LEFT IN Q1 COHORT</div>
+                <button class="btn" onclick="openModal()">[ REQUEST_ACCESS ]</button>
+                <div class="scarcity-tag">⚠️ LIMITED BETA COHORT</div>
             </div>
             <div class="social-proof">
                 <span class="proof-item">As seen on <span style="color: #FF4500;">r/sportsbook</span></span>
                 <span class="proof-dot">●</span>
-                <span class="proof-item">Trusted by 120+ Beta Users</span>
+                <span class="proof-item">Built for Algo-Traders</span>
             </div>
         </div>
     </section>
@@ -793,19 +793,19 @@
             <div class="stats-grid stagger-children">
                 <div class="stat-item fade-child">
                     <div class="stat-value">4</div>
-                    <div class="stat-label">Books</div>
+                    <div class="stat-label">Major Books</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-value">6</div>
-                    <div class="stat-label">Sports</div>
+                    <div class="stat-value">PUSH</div>
+                    <div class="stat-label">WebSockets</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-value">30s</div>
-                    <div class="stat-label">Refresh</div>
+                    <div class="stat-value">&lt;200ms</div>
+                    <div class="stat-label">Latency</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-value">99.9%</div>
-                    <div class="stat-label">Uptime</div>
+                    <div class="stat-value">100%</div>
+                    <div class="stat-label">Transparency</div>
                 </div>
             </div>
             <div class="sources-row">
@@ -820,31 +820,31 @@
     <!-- Features -->
     <section class="fade-in">
         <div class="container">
-            <div class="section-header">CAPABILITIES</div>
+            <div class="section-header">QUANT CAPABILITIES</div>
             <div class="features-grid stagger-children">
                 <div class="feature-item fade-child">
-                    <div class="feature-title">LIVE ODDS</div>
-                    <div class="feature-desc">Multi-book aggregation with 30s refresh cycles</div>
+                    <div class="feature-title">WEBSOCKET FEED</div>
+                    <div class="feature-desc">Real-time push updates. Don't poll, listen.</div>
                 </div>
                 <div class="feature-item">
-                    <div class="feature-title">LINE MOVEMENT</div>
-                    <div class="feature-desc">24h rolling history of line changes per event</div>
+                    <div class="feature-title">LATENCY ANALYTICS</div>
+                    <div class="feature-desc">Live dashboard showing bookmaker delay in ms.</div>
                 </div>
                 <div class="feature-item">
-                    <div class="feature-title">LATENCY TRACKING</div>
-                    <div class="feature-desc">Book-to-book latency measurement in ms</div>
+                    <div class="feature-title">HISTORICAL TICKS</div>
+                    <div class="feature-desc">Access granular tick-level data for backtesting.</div>
                 </div>
                 <div class="feature-item">
                     <div class="feature-title">EDGE DETECTION</div>
-                    <div class="feature-desc">Automated arbitrage and value signals</div>
+                    <div class="feature-desc">Automated arbitrage and +EV signal stream.</div>
                 </div>
                 <div class="feature-item">
-                    <div class="feature-title">REST API</div>
-                    <div class="feature-desc">Simple JSON endpoints, easy integration</div>
+                    <div class="feature-title">SIMPLE REST</div>
+                    <div class="feature-desc">Standard JSON endpoints for snapshot data.</div>
                 </div>
                 <div class="feature-item">
-                    <div class="feature-title">6 SPORTS</div>
-                    <div class="feature-desc">NBA, NFL, MLB, NHL, NCAAB, NCAAF</div>
+                    <div class="feature-title">US MAJORS</div>
+                    <div class="feature-desc">Focus on high-liquidity US regulated books.</div>
                 </div>
             </div>
         </div>
@@ -853,31 +853,31 @@
     <!-- API Preview -->
     <section class="fade-in">
         <div class="container">
-            <div class="section-header">API ENDPOINTS</div>
+            <div class="section-header">DEVELOPER INTERFACE</div>
             <div class="api-block">
-                <div class="api-header">ROUTES</div>
+                <div class="api-header">STREAMING & REST</div>
                 <div class="api-body">
+                    <div class="api-endpoint">
+                        <span class="api-method">WS</span>
+                        <span class="api-path">wss://api.linestream.dev/v1/stream</span>
+                    </div>
                     <div class="api-endpoint">
                         <span class="api-method">GET</span>
                         <span class="api-path">/api/v1/odds/live/:sport</span>
                     </div>
                     <div class="api-endpoint">
                         <span class="api-method">GET</span>
-                        <span class="api-path">/api/v1/odds/movement/:eventId</span>
+                        <span class="api-path">/api/v1/analytics/latency</span>
                     </div>
-                    <div class="api-endpoint">
-                        <span class="api-method">GET</span>
-                        <span class="api-path">/api/v1/books/latency</span>
-                    </div>
-                    <div class="api-endpoint">
-                        <span class="api-method">GET</span>
-                        <span class="api-path">/api/v1/edges</span>
-                    </div>
-                    <div class="api-endpoint">
-                        <span class="api-method">GET</span>
-                        <span class="api-path">/api/v1/events</span>
-                    </div>
-                    <div class="api-example">$ curl https://arb-mvp-production.up.railway.app/api/v1/odds/live/nba</div>
+                    <div class="api-example"># Python Example
+                        import asyncio
+                        from linestream import LineStreamClient
+
+                        async def main():
+                        client = LineStreamClient(api_key="...")
+                        async for odd in client.subscribe("nba"):
+                        if odd.is_arb:
+                        print(f"ARB FOUND: {odd}")</div>
                 </div>
             </div>
         </div>
@@ -886,31 +886,32 @@
     <!-- Pricing -->
     <section class="fade-in">
         <div class="container">
-            <div class="section-header">PRICING</div>
+            <div class="section-header">TIERED ACCESS</div>
             <div class="pricing-grid">
-                <div class="pricing-card active">
-                    <div class="pricing-tier">BETA ACCESS</div>
-                    <div class="pricing-amount">$29/mo</div>
-                    <div class="pricing-note">LOCKED_FOR_LIFE</div>
-                    <div class="pricing-features">
-                        <div class="pricing-feature">Unlimited API calls</div>
-                        <div class="pricing-feature">Priority support</div>
-                        <div class="pricing-feature">Direct feedback channel</div>
-                    </div>
-                    <button class="btn" style="width: 100%; text-align: center;" onclick="openModal()">[ REQUEST_ACCESS
-                        ]</button>
-                </div>
                 <div class="pricing-card">
-                    <div class="pricing-tier">STANDARD</div>
-                    <div class="pricing-amount">$99/mo</div>
-                    <div class="pricing-note" style="color: var(--text-muted);">COMING SOON</div>
+                    <div class="pricing-tier">HACKER</div>
+                    <div class="pricing-amount">$29/mo</div>
+                    <div class="pricing-note">FOR HOBBYISTS</div>
                     <div class="pricing-features">
-                        <div class="pricing-feature">Rate limits apply</div>
-                        <div class="pricing-feature">Standard support</div>
-                        <div class="pricing-feature">All features included</div>
+                        <div class="pricing-feature">REST API Only</div>
+                        <div class="pricing-feature">1-minute delay</div>
+                        <div class="pricing-feature">Standard Support</div>
                     </div>
-                    <span class="btn btn-disabled" style="width: 100%; text-align: center; display: block;">[ PENDING
-                        ]</span>
+                    <button class="btn btn-secondary" style="width: 100%; text-align: center;" onclick="openModal()">[
+                        JOIN WAITLIST ]</button>
+                </div>
+                <div class="pricing-card active">
+                    <div class="pricing-tier">PRO QUANT</div>
+                    <div class="pricing-amount">$99/mo</div>
+                    <div class="pricing-note">FOR ALGO TRADERS</div>
+                    <div class="pricing-features">
+                        <div class="pricing-feature">WebSocket Streaming</div>
+                        <div class="pricing-feature">Zero-Latency / Real-Time</div>
+                        <div class="pricing-feature">Historical Data Access</div>
+                        <div class="pricing-feature">Direct Dev Channel</div>
+                    </div>
+                    <button class="btn" style="width: 100%; text-align: center;" onclick="openModal()">[ REQUEST ACCESS
+                        ]</button>
                 </div>
             </div>
         </div>

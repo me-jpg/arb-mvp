@@ -352,6 +352,17 @@
                 ]
                 }
             </div>
+
+            <p>Python Example:</p>
+            <div class="code-block">
+                <span class="method">import</span> requests
+
+                url = <span class="url">"https://arb-mvp-production.up.railway.app/api/v1/odds/live/nba"</span>
+                response = requests.get(url)
+                data = response.json()
+
+                print(f"Events found: {len(data['events'])}")
+            </div>
         </div>
 
         <div class="section">
